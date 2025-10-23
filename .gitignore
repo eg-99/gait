@@ -1,0 +1,91 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Data files (don't commit large datasets)
+*.npy
+*.h5
+*.hdf5
+*.pkl
+*.pickle
+*.pt
+*.pth
+*.ckpt
+
+# CASIA-B dataset
+CASIA-B/
+casia_b/
+dataset/
+
+# Preprocessed outputs
+preprocessed_data/
+output/
+outputs/
+results/
+
+# Visualizations
+visualizations/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.mp4
+*.avi
+
+# Logs
+logs/
+*.log
+tensorboard/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Model checkpoints
+checkpoints/
+models/
+saved_models/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Documentation
+docs/_build/
