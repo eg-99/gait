@@ -33,10 +33,18 @@ class GaitDataset(Dataset):
         
         # Load data splits
         splits_path = self.data_root / 'data_splits.json'
+        self.sequence_filter = None  # For sequence-based splits
+        
         if splits_path.exists():
             with open(splits_path, 'r') as f:
                 splits = json.load(f)
             self.subject_ids = splits[split]
+            
+            # Check if this is a sequence-based split
+            if 'metadata' in splits and splits['metadata'].get('split_type') == 'sequence_based':
+                # Use sequence filtering
+                seq_key = f'{split}_sequences'
+                self.sequence_filter = splits['metadata'].get(seq_key, None)
         else:
             # If no splits file, use all subjects
             subject_dirs = [d for d in self.data_root.iterdir() if d.is_dir()]
@@ -74,10 +82,17 @@ class GaitDataset(Dataset):
                 parts = filename.replace(f'_{self.data_type}', '').split('_')
                 
                 if len(parts) >= 3:
+                    sequence_id = parts[1]  # e.g., 'nm-01', 'bg-02'
+                    
+                    # Filter by sequence if sequence-based split
+                    if self.sequence_filter is not None:
+                        if sequence_id not in self.sequence_filter:
+                            continue  # Skip sequences not in this split
+                    
                     samples.append({
                         'path': data_path,
                         'subject_id': parts[0],
-                        'sequence_id': parts[1],
+                        'sequence_id': sequence_id,
                         'view_angle': parts[2]
                     })
         
@@ -165,7 +180,8 @@ class GaitDataLoader:
                 batch_size=batch_size,
                 shuffle=(split == 'train'),
                 num_workers=num_workers,
-                pin_memory=True
+                pin_memory=True,
+                drop_last=(split == 'train')  # Drop last incomplete batch for training
             )
         
         return loaders
