@@ -47,10 +47,10 @@ def parse_args():
     
     # Data
     parser.add_argument('--data_root', type=str,
-                       default='/Users/AdityaNangia/Desktop/ADITYA/A College/COLUMBIA/Sem 3/CV 1/Project/gait/output',
-                       help='Root directory of processed GEI data')
+                       default='../../preprocessing/preprocessed_data',
+                       help='Root directory of preprocessed GEI data')
     parser.add_argument('--splits_file', type=str,
-                       default='/Users/AdityaNangia/Desktop/ADITYA/A College/COLUMBIA/Sem 3/CV 1/Project/gait/preprocessing/data_splits_by_sequence.json',
+                       default='../../preprocessing/data_splits_by_sequence.json',
                        help='Path to data splits JSON file')
     
     # Processing
