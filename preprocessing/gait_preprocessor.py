@@ -30,14 +30,25 @@ class GaitSequence:
 class SilhouetteProcessor:
     """Handles silhouette extraction and GEI generation"""
     
-    def __init__(self, target_size: Tuple[int, int] = (64, 128)):
+    def __init__(self, target_size: Tuple[int, int] = (64, 128), use_rembg: bool = False):
         """
         Initialize silhouette processor.
         
         Args:
             target_size: (width, height) for normalized silhouettes
+            use_rembg: Use AI-based background removal (better for complex backgrounds)
         """
         self.target_size = target_size
+        self.use_rembg = use_rembg
+        
+        if use_rembg:
+            try:
+                from rembg import remove
+                self.rembg_remove = remove
+            except ImportError:
+                print("Warning: rembg not installed. Falling back to threshold-based extraction.")
+                print("Install with: pip install rembg")
+                self.use_rembg = False
         
     def extract_silhouette(self, frame: np.ndarray, threshold: int = 127) -> np.ndarray:
         """
@@ -45,19 +56,42 @@ class SilhouetteProcessor:
         
         Args:
             frame: Input image (BGR or grayscale)
-            threshold: Binary threshold value
+            threshold: Binary threshold value (used if not using rembg)
             
         Returns:
             Binary silhouette mask
         """
-        # Convert to grayscale if needed
-        if len(frame.shape) == 3:
-            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        if self.use_rembg:
+            # Use AI-based background removal
+            # rembg expects RGB
+            if len(frame.shape) == 3:
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            else:
+                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
+            
+            # Remove background (returns RGBA)
+            result = self.rembg_remove(rgb_frame)
+            
+            # Extract alpha channel as mask
+            if len(result.shape) == 3 and result.shape[2] == 4:
+                alpha = result[:, :, 3]
+            else:
+                # If no alpha, convert to grayscale
+                alpha = cv2.cvtColor(result, cv2.COLOR_RGB2GRAY)
+            
+            # Threshold to binary
+            _, binary = cv2.threshold(alpha, 10, 255, cv2.THRESH_BINARY)
+            
         else:
-            gray = frame.copy()
-        
-        # Apply binary threshold
-        _, binary = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
+            # Use traditional threshold-based extraction
+            # Convert to grayscale if needed
+            if len(frame.shape) == 3:
+                gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            else:
+                gray = frame.copy()
+            
+            # Apply binary threshold
+            _, binary = cv2.threshold(gray, threshold, 255, cv2.THRESH_BINARY)
         
         # Apply morphological operations to clean up
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
@@ -299,14 +333,15 @@ class PoseProcessor:
 class GaitPreprocessor:
     """Main preprocessing pipeline for gait data"""
     
-    def __init__(self, silhouette_size: Tuple[int, int] = (64, 128)):
+    def __init__(self, silhouette_size: Tuple[int, int] = (64, 128), use_rembg: bool = False):
         """
         Initialize the complete preprocessing pipeline.
         
         Args:
             silhouette_size: Target size for normalized silhouettes
+            use_rembg: Use AI-based background removal for better silhouettes
         """
-        self.silhouette_processor = SilhouetteProcessor(target_size=silhouette_size)
+        self.silhouette_processor = SilhouetteProcessor(target_size=silhouette_size, use_rembg=use_rembg)
         self.pose_processor = PoseProcessor()
         
     def load_video(self, video_path: str) -> List[np.ndarray]:
