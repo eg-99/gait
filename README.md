@@ -23,6 +23,8 @@ pip install sam2
 Extract object silhouettes from videos:
 
 ```bash
+cd gait/preprocessing
+
 # Basic usage (detects person by default)
 python segment_video.py video.mp4
 
