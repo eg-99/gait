@@ -1,6 +1,4 @@
-# CV1 - Computer Vision Project
-
-Computer vision tools for video segmentation and gait recognition.
+# Computer vision tools for video segmentation and gait recognition.
 
 ## Features
 
