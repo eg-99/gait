@@ -8,7 +8,7 @@
 ## Installation
 
 ```bash
-# Python 3.10.18 required
+# Python 3.10.18 works (and some other versions as well)
 pip install -r requirements.txt
 
 # Install SAM2 (if needed)
