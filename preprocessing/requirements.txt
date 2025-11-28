@@ -1,8 +1,21 @@
+# Core dependencies
 opencv-python>=4.8.0
-mediapipe>=0.10.0
 numpy>=1.24.0
-matplotlib>=3.7.0
 tqdm>=4.65.0
-torch>=2.0.0
-imageio>=2.31.0
 scikit-image>=0.21.0
+
+# PyTorch (for data loading)
+torch>=2.0.0
+torchvision>=0.15.0
+
+# Visualization
+matplotlib>=3.7.0
+imageio>=2.31.0
+
+# Pose estimation (optional - only for CASIA-B with RGB images)
+mediapipe>=0.10.0
+
+# AI silhouette extraction (for custom videos)
+rembg>=2.0.50
+onnxruntime>=1.16.0
+pillow>=10.0.0
