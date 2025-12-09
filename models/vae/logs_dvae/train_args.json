@@ -1,0 +1,16 @@
+{
+    "data_root": "C:\\Users\\User\\Documents\\UNI\\CV1\\Casia-B-Images\\preprocessed",
+    "latent_dim": 128,
+    "beta": 1.0,
+    "noise_type": "gaussian",
+    "noise_std": 0.1,
+    "noise_prob": 0.3,
+    "epochs": 50,
+    "batch_size": 32,
+    "lr": 0.001,
+    "weight_decay": 1e-05,
+    "save_dir": "checkpoints_dvae",
+    "log_dir": "logs_dvae",
+    "save_every": 10,
+    "num_workers": 4
+}

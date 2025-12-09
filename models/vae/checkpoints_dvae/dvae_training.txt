@@ -1,0 +1,459 @@
+(gait_fixed) PS C:\Users\User\Documents\UNI\CV1\gait\models\vae> python train_dvae.py --epochs 50  --noise-type gaussian --noise-std 0.1
+Using device: cuda
+
+Loading datasets...
+Data root: C:\Users\User\Documents\UNI\CV1\Casia-B-Images\preprocessed
+Train samples: 13592
+Val samples: 13592
+
+Creating Denoising VAE:
+  Latent dim: 128
+  Beta: 1.0
+  Noise type: gaussian
+  Noise std: 0.1
+  Noise prob: 0.3
+Total parameters: 3,931,009
+
+Starting training...
+================================================================================
+Epoch 1: 100%|██████████| 425/425 [00:32<00:00, 13.07it/s, total=53.3474, recon=35.6906, kl=17.6569] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:11<00:00, 38.04it/s] 
+
+Epoch 1/50
+  Train - Total: 178.6801, Recon: 138.8319, KL: 39.8482
+  Val   - Total: 52.5390, Recon: 35.6713, KL: 16.8676
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 52.5390)
+Reconstruction samples saved to logs_dvae\reconstruction_epoch_1.png
+Generated samples saved to logs_dvae\generated_epoch_1.png
+Epoch 2: 100%|██████████| 425/425 [00:12<00:00, 34.77it/s, total=47.5805, recon=29.2224, kl=18.3581]
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 39.10it/s] 
+
+Epoch 2/50
+  Train - Total: 51.6735, Recon: 32.1389, KL: 19.5347
+  Val   - Total: 41.8567, Recon: 24.2492, KL: 17.6075
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 41.8567)
+Epoch 3: 100%|██████████| 425/425 [00:12<00:00, 34.40it/s, total=31.2006, recon=19.5143, kl=11.6863] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 41.83it/s] 
+
+Epoch 3/50
+  Train - Total: 36.6077, Recon: 23.8708, KL: 12.7369
+  Val   - Total: 33.7707, Recon: 21.6452, KL: 12.1255
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 33.7707)
+Epoch 4: 100%|██████████| 425/425 [00:12<00:00, 33.18it/s, total=29.7408, recon=17.3893, kl=12.3515] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 41.42it/s] 
+
+Epoch 4/50
+  Train - Total: 33.4128, Recon: 21.4222, KL: 11.9906
+  Val   - Total: 32.1265, Recon: 19.7440, KL: 12.3826
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 32.1265)
+Epoch 5: 100%|██████████| 425/425 [00:13<00:00, 32.31it/s, total=30.3350, recon=18.7444, kl=11.5906] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:09<00:00, 43.01it/s] 
+
+Epoch 5/50
+  Train - Total: 31.7166, Recon: 20.1430, KL: 11.5736
+  Val   - Total: 31.1494, Recon: 19.2699, KL: 11.8796
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 31.1494)
+Epoch 6: 100%|██████████| 425/425 [00:12<00:00, 35.10it/s, total=32.8602, recon=20.6229, kl=12.2374] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 38.98it/s] 
+
+Epoch 6/50
+  Train - Total: 30.5125, Recon: 19.1578, KL: 11.3547
+  Val   - Total: 29.2030, Recon: 18.2054, KL: 10.9976
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 29.2030)
+Epoch 7: 100%|███████████| 425/425 [00:15<00:00, 26.64it/s, total=23.3614, recon=14.1083, kl=9.2532] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 39.76it/s] 
+
+Epoch 7/50
+  Train - Total: 29.4110, Recon: 18.2589, KL: 11.1521
+  Val   - Total: 28.5200, Recon: 17.3703, KL: 11.1497
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 28.5200)
+Epoch 8: 100%|██████████| 425/425 [00:11<00:00, 37.11it/s, total=28.2754, recon=17.7960, kl=10.4795] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:09<00:00, 46.89it/s] 
+
+Epoch 8/50
+  Train - Total: 28.7324, Recon: 17.6738, KL: 11.0586
+  Val   - Total: 28.4132, Recon: 17.7039, KL: 10.7093
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 28.4132)
+Epoch 9: 100%|██████████| 425/425 [00:13<00:00, 32.50it/s, total=26.9001, recon=16.3155, kl=10.5845] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:09<00:00, 46.03it/s] 
+
+Epoch 9/50
+  Train - Total: 28.0983, Recon: 17.0590, KL: 11.0393
+  Val   - Total: 27.4725, Recon: 16.4129, KL: 11.0596
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 27.4725)
+Epoch 10: 100%|█████████| 425/425 [00:13<00:00, 31.44it/s, total=27.5833, recon=15.8062, kl=11.7771] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:09<00:00, 42.51it/s] 
+
+Epoch 10/50
+  Train - Total: 27.7408, Recon: 16.7499, KL: 10.9909
+  Val   - Total: 27.0862, Recon: 16.1516, KL: 10.9347
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 27.0862)
+Checkpoint saved to checkpoints_dvae\checkpoint_epoch_10.pth
+Reconstruction samples saved to logs_dvae\reconstruction_epoch_10.png
+Generated samples saved to logs_dvae\generated_epoch_10.png
+Epoch 11: 100%|█████████| 425/425 [00:12<00:00, 32.91it/s, total=26.0298, recon=14.8153, kl=11.2144]
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 40.24it/s] 
+
+Epoch 11/50
+  Train - Total: 27.3997, Recon: 16.4501, KL: 10.9495
+  Val   - Total: 27.1123, Recon: 16.1906, KL: 10.9218
+--------------------------------------------------------------------------------
+Epoch 12: 100%|█████████| 425/425 [00:12<00:00, 32.96it/s, total=29.4884, recon=18.8389, kl=10.6495] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 40.14it/s] 
+
+Epoch 12/50
+  Train - Total: 27.1247, Recon: 16.1581, KL: 10.9666
+  Val   - Total: 26.5535, Recon: 15.5557, KL: 10.9978
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 26.5535)
+Epoch 13: 100%|█████████| 425/425 [00:12<00:00, 35.19it/s, total=24.7575, recon=14.7112, kl=10.0463] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 41.86it/s] 
+
+Epoch 13/50
+  Train - Total: 26.9323, Recon: 15.9319, KL: 11.0004
+  Val   - Total: 26.5727, Recon: 15.4136, KL: 11.1591
+--------------------------------------------------------------------------------
+Epoch 14: 100%|█████████| 425/425 [00:12<00:00, 33.56it/s, total=27.8695, recon=15.0607, kl=12.8088] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:09<00:00, 43.28it/s] 
+
+Epoch 14/50
+  Train - Total: 26.5893, Recon: 15.5876, KL: 11.0017
+  Val   - Total: 26.0889, Recon: 14.5699, KL: 11.5190
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 26.0889)
+Epoch 15: 100%|█████████| 425/425 [00:13<00:00, 31.69it/s, total=28.6763, recon=16.9362, kl=11.7400] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 40.94it/s] 
+
+Epoch 15/50
+  Train - Total: 26.5328, Recon: 15.5077, KL: 11.0251
+  Val   - Total: 26.4505, Recon: 15.0952, KL: 11.3553
+--------------------------------------------------------------------------------
+Epoch 16: 100%|█████████| 425/425 [00:12<00:00, 33.84it/s, total=26.4768, recon=16.2208, kl=10.2560] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 40.82it/s] 
+
+Epoch 16/50
+  Train - Total: 26.3088, Recon: 15.2643, KL: 11.0445
+  Val   - Total: 26.3513, Recon: 15.3392, KL: 11.0121
+--------------------------------------------------------------------------------
+Epoch 17: 100%|█████████| 425/425 [00:12<00:00, 35.24it/s, total=24.4673, recon=14.3241, kl=10.1432] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 40.88it/s] 
+
+Epoch 17/50
+  Train - Total: 26.1346, Recon: 15.1312, KL: 11.0034
+  Val   - Total: 25.8582, Recon: 15.0517, KL: 10.8065
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 25.8582)
+Epoch 18: 100%|█████████| 425/425 [00:12<00:00, 35.03it/s, total=34.3330, recon=21.7362, kl=12.5968] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:09<00:00, 42.72it/s] 
+
+Epoch 18/50
+  Train - Total: 25.8989, Recon: 14.9341, KL: 10.9647
+  Val   - Total: 25.4568, Recon: 14.5692, KL: 10.8876
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 25.4568)
+Epoch 19: 100%|█████████| 425/425 [00:13<00:00, 31.83it/s, total=25.4561, recon=14.7042, kl=10.7518] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:09<00:00, 44.47it/s] 
+
+Epoch 19/50
+  Train - Total: 25.7972, Recon: 14.8351, KL: 10.9621
+  Val   - Total: 25.4512, Recon: 14.6341, KL: 10.8171
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 25.4512)
+Epoch 20: 100%|█████████| 425/425 [00:12<00:00, 34.79it/s, total=25.7888, recon=15.5741, kl=10.2147] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:11<00:00, 37.85it/s] 
+
+Epoch 20/50
+  Train - Total: 25.7108, Recon: 14.7445, KL: 10.9662
+  Val   - Total: 25.4278, Recon: 14.3891, KL: 11.0387
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 25.4278)
+Checkpoint saved to checkpoints_dvae\checkpoint_epoch_20.pth
+Reconstruction samples saved to logs_dvae\reconstruction_epoch_20.png
+Generated samples saved to logs_dvae\generated_epoch_20.png
+Epoch 21: 100%|██████████| 425/425 [00:12<00:00, 33.46it/s, total=22.2685, recon=12.6393, kl=9.6292]
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 41.14it/s] 
+
+Epoch 21/50
+  Train - Total: 25.4257, Recon: 14.4898, KL: 10.9359
+  Val   - Total: 25.2879, Recon: 14.2422, KL: 11.0457
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 25.2879)
+Epoch 22: 100%|█████████| 425/425 [00:12<00:00, 35.12it/s, total=25.9977, recon=15.2646, kl=10.7331] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:11<00:00, 38.52it/s] 
+
+Epoch 22/50
+  Train - Total: 25.4557, Recon: 14.4722, KL: 10.9835
+  Val   - Total: 25.7882, Recon: 14.8916, KL: 10.8965
+--------------------------------------------------------------------------------
+Epoch 23: 100%|█████████| 425/425 [00:12<00:00, 34.90it/s, total=25.0640, recon=14.0446, kl=11.0193] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:09<00:00, 42.78it/s] 
+
+Epoch 23/50
+  Train - Total: 25.2856, Recon: 14.2721, KL: 11.0135
+  Val   - Total: 25.0805, Recon: 13.8924, KL: 11.1881
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 25.0805)
+Epoch 24: 100%|█████████| 425/425 [00:13<00:00, 32.68it/s, total=24.8582, recon=13.8757, kl=10.9826] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 42.31it/s] 
+
+Epoch 24/50
+  Train - Total: 25.1804, Recon: 14.2008, KL: 10.9797
+  Val   - Total: 24.9607, Recon: 14.1293, KL: 10.8314
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 24.9607)
+Epoch 25: 100%|█████████| 425/425 [00:12<00:00, 33.11it/s, total=23.8181, recon=12.2871, kl=11.5310] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:09<00:00, 42.92it/s] 
+
+Epoch 25/50
+  Train - Total: 25.1400, Recon: 14.1508, KL: 10.9892
+  Val   - Total: 24.8798, Recon: 13.9231, KL: 10.9567
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 24.8798)
+Epoch 26: 100%|█████████| 425/425 [00:12<00:00, 34.96it/s, total=25.6524, recon=14.0756, kl=11.5768] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:11<00:00, 38.09it/s] 
+
+Epoch 26/50
+  Train - Total: 25.2696, Recon: 14.2195, KL: 11.0501
+  Val   - Total: 24.7267, Recon: 13.1932, KL: 11.5335
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 24.7267)
+Epoch 27: 100%|█████████| 425/425 [00:12<00:00, 34.83it/s, total=23.6831, recon=13.1288, kl=10.5543] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 41.70it/s] 
+
+Epoch 27/50
+  Train - Total: 24.9654, Recon: 13.9814, KL: 10.9840
+  Val   - Total: 24.7711, Recon: 13.7550, KL: 11.0161
+--------------------------------------------------------------------------------
+Epoch 28: 100%|█████████| 425/425 [00:12<00:00, 33.63it/s, total=25.5902, recon=14.4964, kl=11.0938] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:09<00:00, 43.04it/s] 
+
+Epoch 28/50
+  Train - Total: 24.8775, Recon: 13.9334, KL: 10.9441
+  Val   - Total: 24.6372, Recon: 13.8208, KL: 10.8164
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 24.6372)
+Epoch 29: 100%|█████████| 425/425 [00:13<00:00, 32.53it/s, total=22.7819, recon=12.4382, kl=10.3437] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:09<00:00, 42.99it/s] 
+
+Epoch 29/50
+  Train - Total: 24.7763, Recon: 13.8392, KL: 10.9371
+  Val   - Total: 24.5161, Recon: 13.8215, KL: 10.6946
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 24.5161)
+Epoch 30: 100%|█████████| 425/425 [00:12<00:00, 34.65it/s, total=23.1574, recon=12.8254, kl=10.3320] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 39.12it/s] 
+
+Epoch 30/50
+  Train - Total: 24.7162, Recon: 13.7876, KL: 10.9285
+  Val   - Total: 24.3245, Recon: 13.2881, KL: 11.0364
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 24.3245)
+Checkpoint saved to checkpoints_dvae\checkpoint_epoch_30.pth
+Reconstruction samples saved to logs_dvae\reconstruction_epoch_30.png
+Generated samples saved to logs_dvae\generated_epoch_30.png
+Epoch 31: 100%|█████████| 425/425 [00:12<00:00, 33.39it/s, total=25.5220, recon=14.5080, kl=11.0140]
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 41.00it/s] 
+
+Epoch 31/50
+  Train - Total: 24.6119, Recon: 13.6503, KL: 10.9615
+  Val   - Total: 24.3351, Recon: 13.3302, KL: 11.0050
+--------------------------------------------------------------------------------
+Epoch 32: 100%|█████████| 425/425 [00:12<00:00, 34.83it/s, total=24.6867, recon=13.6251, kl=11.0616] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 40.51it/s] 
+
+Epoch 32/50
+  Train - Total: 24.4659, Recon: 13.5517, KL: 10.9142
+  Val   - Total: 24.1812, Recon: 13.3607, KL: 10.8205
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 24.1812)
+Epoch 33: 100%|█████████| 425/425 [00:12<00:00, 34.78it/s, total=26.8692, recon=16.4307, kl=10.4385] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 40.13it/s] 
+
+Epoch 33/50
+  Train - Total: 24.5017, Recon: 13.5746, KL: 10.9271
+  Val   - Total: 24.2274, Recon: 13.5919, KL: 10.6356
+--------------------------------------------------------------------------------
+Epoch 34: 100%|██████████| 425/425 [00:12<00:00, 33.66it/s, total=22.9605, recon=13.0916, kl=9.8688] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 40.87it/s] 
+
+Epoch 34/50
+  Train - Total: 24.4909, Recon: 13.5376, KL: 10.9533
+  Val   - Total: 24.1845, Recon: 13.7177, KL: 10.4668
+--------------------------------------------------------------------------------
+Epoch 35: 100%|█████████| 425/425 [00:12<00:00, 34.35it/s, total=22.8605, recon=12.3957, kl=10.4648] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 39.70it/s] 
+
+Epoch 35/50
+  Train - Total: 24.3675, Recon: 13.4600, KL: 10.9075
+  Val   - Total: 24.0472, Recon: 13.1179, KL: 10.9293
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 24.0472)
+Epoch 36: 100%|█████████| 425/425 [00:14<00:00, 29.29it/s, total=25.0433, recon=14.5120, kl=10.5313] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:12<00:00, 35.21it/s] 
+
+Epoch 36/50
+  Train - Total: 24.4008, Recon: 13.4592, KL: 10.9416
+  Val   - Total: 23.9765, Recon: 13.4034, KL: 10.5731
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 23.9765)
+Epoch 37: 100%|█████████| 425/425 [00:13<00:00, 31.45it/s, total=25.4923, recon=13.2942, kl=12.1980] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:11<00:00, 37.32it/s] 
+
+Epoch 37/50
+  Train - Total: 24.2293, Recon: 13.3683, KL: 10.8610
+  Val   - Total: 24.0797, Recon: 13.0194, KL: 11.0602
+--------------------------------------------------------------------------------
+Epoch 38: 100%|█████████| 425/425 [00:12<00:00, 34.11it/s, total=25.7307, recon=14.2664, kl=11.4642] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 39.70it/s] 
+
+Epoch 38/50
+  Train - Total: 24.2093, Recon: 13.3443, KL: 10.8650
+  Val   - Total: 24.0515, Recon: 12.8347, KL: 11.2168
+--------------------------------------------------------------------------------
+Epoch 39: 100%|█████████| 425/425 [00:15<00:00, 27.88it/s, total=24.1481, recon=13.2062, kl=10.9419] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:11<00:00, 37.77it/s] 
+
+Epoch 39/50
+  Train - Total: 24.1918, Recon: 13.2901, KL: 10.9017
+  Val   - Total: 24.0985, Recon: 13.3927, KL: 10.7059
+--------------------------------------------------------------------------------
+Epoch 40: 100%|█████████| 425/425 [00:14<00:00, 28.49it/s, total=24.4288, recon=13.6277, kl=10.8011] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 39.27it/s] 
+
+Epoch 40/50
+  Train - Total: 24.1090, Recon: 13.2430, KL: 10.8661
+  Val   - Total: 24.3503, Recon: 13.5305, KL: 10.8198
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\checkpoint_epoch_40.pth
+Reconstruction samples saved to logs_dvae\reconstruction_epoch_40.png
+Generated samples saved to logs_dvae\generated_epoch_40.png
+Epoch 41: 100%|█████████| 425/425 [00:13<00:00, 31.76it/s, total=24.7902, recon=14.3084, kl=10.4818]
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 40.71it/s] 
+
+Epoch 41/50
+  Train - Total: 24.1543, Recon: 13.2298, KL: 10.9245
+  Val   - Total: 23.8509, Recon: 12.9682, KL: 10.8827
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 23.8509)
+Epoch 42: 100%|██████████| 425/425 [00:15<00:00, 27.55it/s, total=21.3628, recon=11.5541, kl=9.8087] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:11<00:00, 35.48it/s] 
+
+Epoch 42/50
+  Train - Total: 24.0465, Recon: 13.1383, KL: 10.9081
+  Val   - Total: 23.7847, Recon: 12.9369, KL: 10.8479
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 23.7847)
+Epoch 43: 100%|█████████| 425/425 [00:13<00:00, 31.99it/s, total=23.3496, recon=12.8996, kl=10.4500] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 41.69it/s] 
+
+Epoch 43/50
+  Train - Total: 24.0288, Recon: 13.1535, KL: 10.8752
+  Val   - Total: 23.8076, Recon: 12.7175, KL: 11.0901
+--------------------------------------------------------------------------------
+Epoch 44: 100%|█████████| 425/425 [00:14<00:00, 30.14it/s, total=23.0506, recon=12.9909, kl=10.0597] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:11<00:00, 37.43it/s] 
+
+Epoch 44/50
+  Train - Total: 23.9797, Recon: 13.0977, KL: 10.8820
+  Val   - Total: 23.7165, Recon: 12.9356, KL: 10.7809
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 23.7165)
+Epoch 45: 100%|█████████| 425/425 [00:12<00:00, 34.90it/s, total=22.8058, recon=12.2708, kl=10.5351] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:12<00:00, 33.98it/s] 
+
+Epoch 45/50
+  Train - Total: 23.9364, Recon: 13.0355, KL: 10.9009
+  Val   - Total: 23.8420, Recon: 12.9204, KL: 10.9216
+--------------------------------------------------------------------------------
+Epoch 46: 100%|█████████| 425/425 [00:12<00:00, 33.91it/s, total=23.9120, recon=13.4858, kl=10.4263] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:09<00:00, 42.73it/s] 
+
+Epoch 46/50
+  Train - Total: 23.8428, Recon: 12.9290, KL: 10.9138
+  Val   - Total: 23.9054, Recon: 12.9240, KL: 10.9814
+--------------------------------------------------------------------------------
+Epoch 47: 100%|█████████| 425/425 [00:13<00:00, 31.73it/s, total=24.5332, recon=12.6757, kl=11.8576] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 40.35it/s] 
+
+Epoch 47/50
+  Train - Total: 23.8152, Recon: 12.9349, KL: 10.8803
+  Val   - Total: 23.6374, Recon: 12.7478, KL: 10.8897
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 23.6374)
+Epoch 48: 100%|█████████| 425/425 [00:14<00:00, 28.76it/s, total=23.5187, recon=12.1485, kl=11.3701] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:11<00:00, 37.50it/s] 
+
+Epoch 48/50
+  Train - Total: 23.8645, Recon: 12.9633, KL: 10.9013
+  Val   - Total: 23.5318, Recon: 12.3213, KL: 11.2105
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 23.5318)
+Epoch 49: 100%|█████████| 425/425 [00:13<00:00, 31.12it/s, total=22.2521, recon=12.1685, kl=10.0836] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:09<00:00, 42.68it/s] 
+
+Epoch 49/50
+  Train - Total: 23.7274, Recon: 12.8936, KL: 10.8338
+  Val   - Total: 23.6975, Recon: 12.7119, KL: 10.9856
+--------------------------------------------------------------------------------
+Epoch 50: 100%|█████████| 425/425 [00:12<00:00, 35.06it/s, total=24.0978, recon=13.5314, kl=10.5663] 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:10<00:00, 41.80it/s] 
+
+Epoch 50/50
+  Train - Total: 23.7543, Recon: 12.8774, KL: 10.8769
+  Val   - Total: 23.4656, Recon: 12.3686, KL: 11.0970
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dvae\best_model.pth
+  ✓ New best model! (val_total_loss: 23.4656)
+Checkpoint saved to checkpoints_dvae\checkpoint_epoch_50.pth
+Reconstruction samples saved to logs_dvae\reconstruction_epoch_50.png
+Generated samples saved to logs_dvae\generated_epoch_50.png
+Checkpoint saved to checkpoints_dvae\final_model.pth
+Training curves saved to logs_dvae\training_curves.png
+
+================================================================================
+Training complete!
+Best validation loss: 23.4656
+Models saved to: checkpoints_dvae
+Logs saved to: logs_dvae

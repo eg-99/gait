@@ -1,0 +1,205 @@
+(gait_fixed) PS C:\Users\User\Documents\UNI\CV1\gait\models\vae> python train_dcvae.py --epochs 20  --noise-type gaussian --noise-std 0.1 --contrastive-weight 0.5
+Using device: cuda
+
+Loading datasets...
+Data root: C:\Users\User\Documents\UNI\CV1\Casia-B-Images\preprocessed
+Train samples: 13592
+Val samples: 13592
+
+Creating Denoising Contrastive VAE:
+  Latent dim: 128
+  Projection dim: 128
+  Beta: 1.0
+  Contrastive weight: 0.5
+  Temperature: 0.07
+  Noise type: gaussian
+  Noise std: 0.1
+  Noise prob: 0.3
+Total parameters: 3,964,033
+
+Starting training...
+================================================================================
+Epoch 1: 100%|█| 425/425 [01:12<00:00,  5.87it/s, total=72.5209, recon=56.8398, kl=15.5401, contr=0. 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:32<00:00, 12.91it/s] 
+
+Epoch 1/20
+  Train - Total: 205.9524, Recon: 168.9297, KL: 36.6521, Contrastive: 0.7411
+  Val   - Total: 54.2075, Recon: 38.3565, KL: 14.1027, Contrastive: 3.4965
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dcvae\best_model.pth
+  ✓ New best model! (val_total_loss: 54.2075)
+Reconstruction samples saved to logs_dcvae\reconstruction_epoch_1.png
+Generated samples saved to logs_dcvae\generated_epoch_1.png
+Epoch 2: 100%|█| 425/425 [00:55<00:00,  7.60it/s, total=45.7782, recon=29.8772, kl=15.3945, contr=1.
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:24<00:00, 17.08it/s] 
+
+Epoch 2/20
+  Train - Total: 45.8567, Recon: 30.0071, KL: 15.5141, Contrastive: 0.6710
+  Val   - Total: 41.0039, Recon: 25.1928, KL: 14.0394, Contrastive: 3.5435
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dcvae\best_model.pth
+  ✓ New best model! (val_total_loss: 41.0039)
+Epoch 3: 100%|█| 425/425 [00:27<00:00, 15.51it/s, total=37.4381, recon=24.3213, kl=12.8801, contr=0. 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:33<00:00, 12.78it/s] 
+
+Epoch 3/20
+  Train - Total: 36.3041, Recon: 23.0708, KL: 12.9142, Contrastive: 0.6383
+  Val   - Total: 35.9106, Recon: 21.5549, KL: 12.5159, Contrastive: 3.6797
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dcvae\best_model.pth
+  ✓ New best model! (val_total_loss: 35.9106)
+Epoch 4: 100%|█| 425/425 [00:31<00:00, 13.43it/s, total=38.5753, recon=25.7526, kl=12.6642, contr=0. 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:25<00:00, 16.61it/s] 
+
+Epoch 4/20
+  Train - Total: 33.3402, Recon: 20.7956, KL: 12.2549, Contrastive: 0.5795
+  Val   - Total: 33.2476, Recon: 19.3000, KL: 12.0948, Contrastive: 3.7057
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dcvae\best_model.pth
+  ✓ New best model! (val_total_loss: 33.2476)
+Epoch 5: 100%|█| 425/425 [00:29<00:00, 14.34it/s, total=26.2709, recon=14.8809, kl=11.2659, contr=0. 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:27<00:00, 15.52it/s] 
+
+Epoch 5/20
+  Train - Total: 31.3315, Recon: 19.3382, KL: 11.7195, Contrastive: 0.5477
+  Val   - Total: 32.3223, Recon: 18.3896, KL: 12.1098, Contrastive: 3.6459
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dcvae\best_model.pth
+  ✓ New best model! (val_total_loss: 32.3223)
+Epoch 6: 100%|█| 425/425 [00:27<00:00, 15.44it/s, total=29.7311, recon=19.3757, kl=10.2268, contr=0. 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:23<00:00, 18.29it/s]
+
+Epoch 6/20
+  Train - Total: 30.1867, Recon: 18.4157, KL: 11.4942, Contrastive: 0.5537
+  Val   - Total: 30.6350, Recon: 16.7592, KL: 12.0332, Contrastive: 3.6853
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dcvae\best_model.pth
+  ✓ New best model! (val_total_loss: 30.6350)
+Epoch 7: 100%|█| 425/425 [00:26<00:00, 15.86it/s, total=30.6796, recon=19.3500, kl=11.3296, contr=-0 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:22<00:00, 19.07it/s] 
+
+Epoch 7/20
+  Train - Total: 29.4439, Recon: 17.7615, KL: 11.4040, Contrastive: 0.5568
+  Val   - Total: 30.7090, Recon: 17.7578, KL: 11.0860, Contrastive: 3.7304
+--------------------------------------------------------------------------------
+Epoch 8: 100%|█| 425/425 [00:28<00:00, 14.92it/s, total=27.3952, recon=16.8168, kl=10.5502, contr=0. 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:23<00:00, 18.42it/s] 
+
+Epoch 8/20
+  Train - Total: 28.6285, Recon: 17.0643, KL: 11.3045, Contrastive: 0.5193
+  Val   - Total: 29.5875, Recon: 17.1723, KL: 10.5119, Contrastive: 3.8065
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dcvae\best_model.pth
+  ✓ New best model! (val_total_loss: 29.5875)
+Epoch 9: 100%|█| 425/425 [00:27<00:00, 15.69it/s, total=25.7734, recon=15.4715, kl=10.0533, contr=0. 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:23<00:00, 18.44it/s] 
+
+Epoch 9/20
+  Train - Total: 28.2075, Recon: 16.7403, KL: 11.2138, Contrastive: 0.5066
+  Val   - Total: 29.3208, Recon: 16.2298, KL: 11.1989, Contrastive: 3.7841
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dcvae\best_model.pth
+  ✓ New best model! (val_total_loss: 29.3208)
+Epoch 10: 100%|█| 425/425 [00:38<00:00, 11.15it/s, total=27.4138, recon=15.8069, kl=11.5165, contr=0 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:33<00:00, 12.56it/s] 
+
+Epoch 10/20
+  Train - Total: 27.8341, Recon: 16.3844, KL: 11.2032, Contrastive: 0.4931
+  Val   - Total: 28.7864, Recon: 14.9008, KL: 12.0409, Contrastive: 3.6893
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dcvae\best_model.pth
+  ✓ New best model! (val_total_loss: 28.7864)
+Checkpoint saved to checkpoints_dcvae\checkpoint_epoch_10.pth
+Reconstruction samples saved to logs_dcvae\reconstruction_epoch_10.png
+Generated samples saved to logs_dcvae\generated_epoch_10.png
+Epoch 11: 100%|█| 425/425 [00:38<00:00, 10.97it/s, total=31.3275, recon=19.4532, kl=11.7604, contr=0
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:28<00:00, 15.15it/s] 
+
+Epoch 11/20
+  Train - Total: 27.5953, Recon: 16.1800, KL: 11.1619, Contrastive: 0.5068
+  Val   - Total: 28.9596, Recon: 15.4621, KL: 11.6481, Contrastive: 3.6988
+--------------------------------------------------------------------------------
+Epoch 12: 100%|█| 425/425 [00:36<00:00, 11.50it/s, total=29.0320, recon=18.1116, kl=10.7606, contr=0 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:25<00:00, 16.63it/s] 
+
+Epoch 12/20
+  Train - Total: 27.3308, Recon: 15.9310, KL: 11.1493, Contrastive: 0.5010
+  Val   - Total: 28.6928, Recon: 15.7620, KL: 11.0389, Contrastive: 3.7837
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dcvae\best_model.pth
+  ✓ New best model! (val_total_loss: 28.6928)
+Epoch 13: 100%|█| 425/425 [00:35<00:00, 11.92it/s, total=26.0429, recon=15.2375, kl=10.8055, contr=- 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:25<00:00, 16.70it/s] 
+
+Epoch 13/20
+  Train - Total: 27.0753, Recon: 15.7178, KL: 11.1042, Contrastive: 0.5066
+  Val   - Total: 28.3357, Recon: 15.1088, KL: 11.3243, Contrastive: 3.8052
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dcvae\best_model.pth
+  ✓ New best model! (val_total_loss: 28.3357)
+Epoch 14: 100%|█| 425/425 [00:34<00:00, 12.33it/s, total=32.1071, recon=20.5919, kl=11.3409, contr=0 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:26<00:00, 15.91it/s] 
+
+Epoch 14/20
+  Train - Total: 26.8295, Recon: 15.5235, KL: 11.0660, Contrastive: 0.4800
+  Val   - Total: 27.9939, Recon: 15.2092, KL: 10.8929, Contrastive: 3.7835
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dcvae\best_model.pth
+  ✓ New best model! (val_total_loss: 27.9939)
+Epoch 15: 100%|█| 425/425 [00:33<00:00, 12.64it/s, total=28.0705, recon=17.0301, kl=11.0404, contr=- 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:24<00:00, 17.32it/s] 
+
+Epoch 15/20
+  Train - Total: 26.6404, Recon: 15.3243, KL: 11.0866, Contrastive: 0.4591
+  Val   - Total: 28.2298, Recon: 15.5322, KL: 10.8076, Contrastive: 3.7799
+--------------------------------------------------------------------------------
+Epoch 16: 100%|█| 425/425 [00:35<00:00, 12.13it/s, total=28.1842, recon=16.7903, kl=11.2985, contr=0 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:25<00:00, 16.53it/s] 
+
+Epoch 16/20
+  Train - Total: 26.5446, Recon: 15.2176, KL: 11.0890, Contrastive: 0.4759
+  Val   - Total: 28.1239, Recon: 15.4119, KL: 10.8224, Contrastive: 3.7792
+--------------------------------------------------------------------------------
+Epoch 17: 100%|█| 425/425 [00:34<00:00, 12.24it/s, total=26.6379, recon=15.8956, kl=10.5867, contr=0 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:26<00:00, 15.82it/s] 
+
+Epoch 17/20
+  Train - Total: 26.4804, Recon: 15.1170, KL: 11.1254, Contrastive: 0.4760
+  Val   - Total: 27.5882, Recon: 14.7629, KL: 10.9452, Contrastive: 3.7602
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dcvae\best_model.pth
+  ✓ New best model! (val_total_loss: 27.5882)
+Epoch 18: 100%|█| 425/425 [00:37<00:00, 11.26it/s, total=24.3442, recon=13.2591, kl=10.9683, contr=0 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:25<00:00, 16.45it/s] 
+
+Epoch 18/20
+  Train - Total: 26.1472, Recon: 14.8270, KL: 11.0809, Contrastive: 0.4788
+  Val   - Total: 27.6544, Recon: 14.9525, KL: 10.8598, Contrastive: 3.6841
+--------------------------------------------------------------------------------
+Epoch 19: 100%|█| 425/425 [00:33<00:00, 12.61it/s, total=27.8062, recon=16.1897, kl=11.2856, contr=0 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:25<00:00, 16.65it/s] 
+
+Epoch 19/20
+  Train - Total: 25.9806, Recon: 14.7303, KL: 11.0275, Contrastive: 0.4456
+  Val   - Total: 27.7147, Recon: 14.5540, KL: 11.3136, Contrastive: 3.6941
+--------------------------------------------------------------------------------
+Epoch 20: 100%|█| 425/425 [00:33<00:00, 12.60it/s, total=23.6651, recon=12.9050, kl=10.5328, contr=0 
+Validation: 100%|█████████████████████████████████████████████████| 425/425 [00:25<00:00, 16.96it/s] 
+
+Epoch 20/20
+  Train - Total: 25.9636, Recon: 14.6618, KL: 11.0757, Contrastive: 0.4521
+  Val   - Total: 27.3337, Recon: 13.8287, KL: 11.6398, Contrastive: 3.7302
+--------------------------------------------------------------------------------
+Checkpoint saved to checkpoints_dcvae\best_model.pth
+  ✓ New best model! (val_total_loss: 27.3337)
+Checkpoint saved to checkpoints_dcvae\checkpoint_epoch_20.pth
+Reconstruction samples saved to logs_dcvae\reconstruction_epoch_20.png
+Generated samples saved to logs_dcvae\generated_epoch_20.png
+Checkpoint saved to checkpoints_dcvae\final_model.pth
+Training curves saved to logs_dcvae\training_curves.png
+
+================================================================================
+Training complete!
+Best validation loss: 27.3337
+Models saved to: checkpoints_dcvae
+Logs saved to: logs_dcvae

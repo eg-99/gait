@@ -2,12 +2,14 @@
 Data Augmentations for Contrastive Learning with GEI
 
 Creates positive pairs through data augmentation for contrastive learning.
+Supports pairing different modalities (angles, bag, coat) from the same subject.
 """
 
 import torch
 import torch.nn.functional as F
 import numpy as np
-from typing import Tuple
+from typing import Tuple, List, Dict, Optional
+from collections import defaultdict
 
 
 class GEIAugmentation:
@@ -175,36 +177,182 @@ class GEIAugmentation:
         return x1, x2
 
 
-def create_contrastive_batch(gei_batch, labels, augmentation):
+def create_modality_pairs(gei_batch, labels, metadata_list, 
+                          pair_by_angle=True, pair_by_condition=True,
+                          augmentation=None):
+    """
+    Create positive pairs by pairing different modalities from the same subject.
+    
+    Pairs samples from the same subject but with:
+    - Different view angles (if pair_by_angle=True)
+    - Different conditions (bag/coat/normal, if pair_by_condition=True)
+    
+    Args:
+        gei_batch: Batch of GEI images (batch_size, 1, 128, 64)
+        labels: Batch of labels (batch_size,) - subject IDs
+        metadata_list: List of metadata dicts with 'subject_id', 'sequence_id', 'view_angle'
+        pair_by_angle: If True, pair samples with different view angles
+        pair_by_condition: If True, pair samples with different conditions (nm/bg/cl)
+        augmentation: Optional GEIAugmentation instance to apply to pairs
+    
+    Returns:
+        gei_paired: Paired GEI images (batch_size * 2, 1, 128, 64)
+        labels_paired: Labels for paired samples (batch_size * 2,)
+    """
+    batch_size = gei_batch.size(0)
+    device = gei_batch.device
+    
+    # Group samples by subject_id
+    subject_groups = defaultdict(list)
+    for i in range(batch_size):
+        subject_id = metadata_list[i]['subject_id']
+        subject_groups[subject_id].append(i)
+    
+    # Extract condition type from sequence_id (nm, bg, cl)
+    def get_condition_type(sequence_id):
+        """Extract condition type from sequence_id (e.g., 'nm-01' -> 'nm')."""
+        if '-' in sequence_id:
+            return sequence_id.split('-')[0]
+        return sequence_id
+    
+    # Create pairs
+    gei_pairs = []
+    label_pairs = []
+    
+    for subject_id, indices in subject_groups.items():
+        if len(indices) < 2:
+            # If only one sample for this subject, duplicate it
+            idx = indices[0]
+            gei_pairs.append(gei_batch[idx])
+            gei_pairs.append(gei_batch[idx])
+            label_pairs.append(labels[idx])
+            label_pairs.append(labels[idx])
+            continue
+        
+        # Try to find pairs with different modalities
+        paired_indices = set()
+        
+        for i, idx1 in enumerate(indices):
+            if idx1 in paired_indices:
+                continue
+            
+            metadata1 = metadata_list[idx1]
+            view1 = metadata1['view_angle']
+            cond1 = get_condition_type(metadata1['sequence_id'])
+            
+            # Find a matching pair
+            best_pair_idx = None
+            best_score = -1
+            
+            for idx2 in indices:
+                if idx2 == idx1 or idx2 in paired_indices:
+                    continue
+                
+                metadata2 = metadata_list[idx2]
+                view2 = metadata2['view_angle']
+                cond2 = get_condition_type(metadata2['sequence_id'])
+                
+                # Score based on modality differences
+                score = 0
+                if pair_by_angle and view1 != view2:
+                    score += 1
+                if pair_by_condition and cond1 != cond2:
+                    score += 2  # Higher weight for condition difference
+                
+                if score > best_score:
+                    best_score = score
+                    best_pair_idx = idx2
+            
+            # Create pair
+            if best_pair_idx is not None and best_score > 0:
+                # Found a good modality pair
+                gei_pairs.append(gei_batch[idx1])
+                gei_pairs.append(gei_batch[best_pair_idx])
+                label_pairs.append(labels[idx1])
+                label_pairs.append(labels[best_pair_idx])
+                paired_indices.add(idx1)
+                paired_indices.add(best_pair_idx)
+            else:
+                # No good pair found, use augmentation or duplicate
+                gei_pairs.append(gei_batch[idx1])
+                if augmentation is not None:
+                    gei_pairs.append(augmentation.apply_random_augmentation(gei_batch[idx1]))
+                else:
+                    gei_pairs.append(gei_batch[idx1])
+                label_pairs.append(labels[idx1])
+                label_pairs.append(labels[idx1])
+                paired_indices.add(idx1)
+        
+        # Handle unpaired samples
+        for idx in indices:
+            if idx not in paired_indices:
+                gei_pairs.append(gei_batch[idx])
+                if augmentation is not None:
+                    gei_pairs.append(augmentation.apply_random_augmentation(gei_batch[idx]))
+                else:
+                    gei_pairs.append(gei_batch[idx])
+                label_pairs.append(labels[idx])
+                label_pairs.append(labels[idx])
+    
+    # Stack into tensors
+    gei_paired = torch.stack(gei_pairs, dim=0)
+    # Handle labels - they might be tensors or scalars
+    if isinstance(label_pairs[0], torch.Tensor):
+        labels_paired = torch.stack(label_pairs, dim=0)
+    else:
+        labels_paired = torch.tensor(label_pairs, device=device, dtype=labels.dtype)
+    
+    return gei_paired, labels_paired
+
+
+def create_contrastive_batch(gei_batch, labels, augmentation, 
+                            metadata_list=None, 
+                            use_modality_pairs=False,
+                            pair_by_angle=True,
+                            pair_by_condition=True):
     """
     Create augmented batch for contrastive learning.
     
-    For each sample, creates two augmented views.
+    Can create positive pairs through:
+    1. Data augmentation (default)
+    2. Different modalities from same subject (if use_modality_pairs=True)
+    3. Combination of both
     
     Args:
         gei_batch: Batch of GEI images (batch_size, 1, 128, 64)
         labels: Batch of labels (batch_size,)
         augmentation: GEIAugmentation instance
+        metadata_list: Optional list of metadata dicts with 'subject_id', 'sequence_id', 'view_angle'
+        use_modality_pairs: If True, pair different modalities instead of just augmenting
+        pair_by_angle: If True, pair samples with different view angles (when use_modality_pairs=True)
+        pair_by_condition: If True, pair samples with different conditions (when use_modality_pairs=True)
     
     Returns:
-        gei_aug1: First augmented views (batch_size, 1, 128, 64)
-        gei_aug2: Second augmented views (batch_size, 1, 128, 64)
-        labels_aug: Labels repeated (batch_size * 2,)
+        gei_combined: Combined GEI images (batch_size * 2, 1, 128, 64)
+        labels_combined: Labels repeated (batch_size * 2,)
     """
     batch_size = gei_batch.size(0)
-    device = gei_batch.device
     
-    # Create two augmented views for each sample
-    gei_aug1 = torch.zeros_like(gei_batch)
-    gei_aug2 = torch.zeros_like(gei_batch)
-    
-    for i in range(batch_size):
-        gei_aug1[i] = augmentation.apply_random_augmentation(gei_batch[i])
-        gei_aug2[i] = augmentation.apply_random_augmentation(gei_batch[i])
-    
-    # Concatenate both views
-    gei_combined = torch.cat([gei_aug1, gei_aug2], dim=0)
-    labels_combined = torch.cat([labels, labels], dim=0)
+    if use_modality_pairs and metadata_list is not None:
+        # Use modality-based pairing
+        gei_combined, labels_combined = create_modality_pairs(
+            gei_batch, labels, metadata_list,
+            pair_by_angle=pair_by_angle,
+            pair_by_condition=pair_by_condition,
+            augmentation=augmentation  # Still apply augmentation to pairs
+        )
+    else:
+        # Original augmentation-based approach
+        gei_aug1 = torch.zeros_like(gei_batch)
+        gei_aug2 = torch.zeros_like(gei_batch)
+        
+        for i in range(batch_size):
+            gei_aug1[i] = augmentation.apply_random_augmentation(gei_batch[i])
+            gei_aug2[i] = augmentation.apply_random_augmentation(gei_batch[i])
+        
+        # Concatenate both views
+        gei_combined = torch.cat([gei_aug1, gei_aug2], dim=0)
+        labels_combined = torch.cat([labels, labels], dim=0)
     
     return gei_combined, labels_combined
 

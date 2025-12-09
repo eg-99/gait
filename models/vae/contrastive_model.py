@@ -8,7 +8,7 @@ Combines VAE reconstruction with contrastive learning for robust embeddings.
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .model import GEI_VAE
+from model import GEI_VAE
 
 
 class ContrastiveGEIEncoder(nn.Module):

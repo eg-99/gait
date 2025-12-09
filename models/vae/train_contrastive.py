@@ -35,7 +35,7 @@ def parse_args():
     
     # Data
     parser.add_argument('--data_root', type=str, 
-                       default=r'C:\Users\User\Documents\UNI\CV1\Casia-B-Images\output',
+                       default=r'C:\Users\User\Documents\UNI\CV1\Casia-B-Images\preprocessed',
                        help='Root directory of preprocessed GEI data')
     
     # Model
@@ -53,6 +53,12 @@ def parse_args():
                        help='Temperature parameter for contrastive loss')
     parser.add_argument('--use_augmentation', action='store_true',
                        help='Use data augmentation for positive pairs')
+    parser.add_argument('--use_modality_pairs', action='store_true',
+                       help='Pair different modalities (angles, bag, coat) from same subject as positives')
+    parser.add_argument('--pair_by_angle', action='store_true', default=True,
+                       help='When using modality pairs, pair samples with different view angles')
+    parser.add_argument('--pair_by_condition', action='store_true', default=True,
+                       help='When using modality pairs, pair samples with different conditions (nm/bg/cl)')
     parser.add_argument('--contrastive_loss_type', type=str, default='info_nce',
                        choices=['info_nce', 'supervised'],
                        help='Type of contrastive loss to use')
@@ -84,7 +90,8 @@ def parse_args():
 
 def train_epoch(model, dataloader, optimizer, device, epoch, beta, 
                 contrastive_weight, temperature, use_augmentation, 
-                contrastive_loss_type):
+                contrastive_loss_type, use_modality_pairs=False,
+                pair_by_angle=True, pair_by_condition=True):
     """
     Train for one epoch.
     
@@ -100,16 +107,41 @@ def train_epoch(model, dataloader, optimizer, device, epoch, beta,
     num_batches = 0
     
     # Initialize augmentation if needed
-    augmentation = GEIAugmentation() if use_augmentation else None
+    augmentation = GEIAugmentation() if (use_augmentation or use_modality_pairs) else None
     
     pbar = tqdm(dataloader, desc=f'Epoch {epoch}')
-    for batch_idx, (gei, labels, _) in enumerate(pbar):
+    for batch_idx, (gei, labels, metadata) in enumerate(pbar):
         gei = gei.to(device)
         labels = labels.to(device)
         
         # Create augmented views for contrastive learning
-        if use_augmentation and augmentation is not None:
-            gei_aug, labels_aug = create_contrastive_batch(gei, labels, augmentation)
+        if use_augmentation or use_modality_pairs:
+            if use_modality_pairs:
+                # Convert batched metadata (dict of lists) back to list of dicts
+                # DataLoader batches dicts into dict of lists, so we need to convert back
+                if isinstance(metadata, dict):
+                    batch_size = len(metadata['subject_id'])
+                    metadata_list = [
+                        {
+                            'subject_id': metadata['subject_id'][i],
+                            'sequence_id': metadata['sequence_id'][i],
+                            'view_angle': metadata['view_angle'][i]
+                        }
+                        for i in range(batch_size)
+                    ]
+                else:
+                    # If it's already a list, use it directly
+                    metadata_list = list(metadata)
+                
+                gei_aug, labels_aug = create_contrastive_batch(
+                    gei, labels, augmentation,
+                    metadata_list=metadata_list,
+                    use_modality_pairs=True,
+                    pair_by_angle=pair_by_angle,
+                    pair_by_condition=pair_by_condition
+                )
+            else:
+                gei_aug, labels_aug = create_contrastive_batch(gei, labels, augmentation)
         else:
             # Use original batch twice (no augmentation)
             gei_aug = torch.cat([gei, gei], dim=0)
@@ -183,7 +215,8 @@ def train_epoch(model, dataloader, optimizer, device, epoch, beta,
 
 
 def validate(model, dataloader, device, beta, contrastive_weight, 
-             temperature, contrastive_loss_type):
+             temperature, contrastive_loss_type, use_modality_pairs=False,
+             pair_by_angle=True, pair_by_condition=True):
     """
     Validate the model.
     
@@ -198,14 +231,42 @@ def validate(model, dataloader, device, beta, contrastive_weight,
     contrastive_loss_sum = 0.0
     num_batches = 0
     
+    # Initialize augmentation if using modality pairs
+    augmentation = GEIAugmentation() if use_modality_pairs else None
+    
     with torch.no_grad():
-        for gei, labels, _ in tqdm(dataloader, desc='Validation'):
+        for gei, labels, metadata in tqdm(dataloader, desc='Validation'):
             gei = gei.to(device)
             labels = labels.to(device)
             
-            # Create two views (no augmentation in validation)
-            gei_aug = torch.cat([gei, gei], dim=0)
-            labels_aug = torch.cat([labels, labels], dim=0)
+            # Create two views
+            if use_modality_pairs:
+                # Convert batched metadata (dict of lists) back to list of dicts
+                if isinstance(metadata, dict):
+                    batch_size = len(metadata['subject_id'])
+                    metadata_list = [
+                        {
+                            'subject_id': metadata['subject_id'][i],
+                            'sequence_id': metadata['sequence_id'][i],
+                            'view_angle': metadata['view_angle'][i]
+                        }
+                        for i in range(batch_size)
+                    ]
+                else:
+                    # If it's already a list, use it directly
+                    metadata_list = list(metadata)
+                
+                gei_aug, labels_aug = create_contrastive_batch(
+                    gei, labels, augmentation,
+                    metadata_list=metadata_list,
+                    use_modality_pairs=True,
+                    pair_by_angle=pair_by_angle,
+                    pair_by_condition=pair_by_condition
+                )
+            else:
+                # Use original batch twice (no augmentation in validation)
+                gei_aug = torch.cat([gei, gei], dim=0)
+                labels_aug = torch.cat([labels, labels], dim=0)
             
             # Forward pass
             reconstruction, mu, log_var, projection = model(gei_aug, return_projection=True)
@@ -375,6 +436,43 @@ def save_reconstruction_samples(model, dataloader, device, save_path, num_sample
     plt.close()
 
 
+def diagnose_dataset(data_root, split='train'):
+    """Diagnose dataset loading issues."""
+    from pathlib import Path
+    data_path = Path(data_root)
+    
+    print(f"\nDiagnosing dataset at: {data_root}")
+    print(f"  Directory exists: {data_path.exists()}")
+    
+    if not data_path.exists():
+        return
+    
+    # Check for data_splits.json
+    splits_file = data_path / 'data_splits.json'
+    print(f"  data_splits.json exists: {splits_file.exists()}")
+    
+    if splits_file.exists():
+        with open(splits_file, 'r') as f:
+            splits = json.load(f)
+        print(f"  Available splits: {list(splits.keys())}")
+        if split in splits:
+            print(f"  '{split}' split has {len(splits[split])} subjects")
+            if 'metadata' in splits:
+                print(f"  Split type: {splits['metadata'].get('split_type', 'subject_based')}")
+    
+    # Count GEI files
+    gei_files = list(data_path.glob("*/*_gei.npy"))
+    print(f"  Total GEI files found: {len(gei_files)}")
+    
+    if len(gei_files) > 0:
+        # Show sample filenames
+        print(f"  Sample files:")
+        for f in gei_files[:3]:
+            print(f"    {f.name}")
+        if len(gei_files) > 3:
+            print(f"    ... and {len(gei_files) - 3} more")
+
+
 def main():
     args = parse_args()
     
@@ -392,8 +490,31 @@ def main():
     
     # Load data
     print("\nLoading datasets...")
+    print(f"Data root: {args.data_root}")
+    
+    # Check if data root exists
+    if not os.path.exists(args.data_root):
+        raise ValueError(f"Data root directory does not exist: {args.data_root}")
+    
     train_dataset = GaitDataset(args.data_root, split='train', data_type='gei')
     val_dataset = GaitDataset(args.data_root, split='val', data_type='gei')
+    
+    print(f"Train samples: {len(train_dataset)}")
+    print(f"Val samples: {len(val_dataset)}")
+    
+    if len(train_dataset) == 0:
+        diagnose_dataset(args.data_root, split='train')
+        raise ValueError(
+            f"\nNo training samples found in {args.data_root}. "
+            "Please check:\n"
+            "  1. Data root path is correct\n"
+            "  2. data_splits.json exists and has 'train' split\n"
+            "  3. GEI files exist in subject directories\n"
+            "  4. File naming matches expected pattern: {subject_id}_{sequence_id}_{view_angle}_gei.npy"
+        )
+    
+    if len(val_dataset) == 0:
+        print("Warning: No validation samples found. Consider checking data_splits.json")
     
     train_loader = DataLoader(
         train_dataset,
@@ -411,13 +532,16 @@ def main():
         pin_memory=True if device.type == 'cuda' else False
     )
     
-    print(f"Train samples: {len(train_dataset)}")
-    print(f"Val samples: {len(val_dataset)}")
-    
     # Create model
     print(f"\nCreating Contrastive VAE (latent_dim={args.latent_dim}, "
           f"projection_dim={args.projection_dim}, beta={args.beta}, "
           f"contrastive_weight={args.contrastive_weight})...")
+    if args.use_modality_pairs:
+        print(f"  Modality pairing: Enabled")
+        print(f"    - Pair by angle: {args.pair_by_angle}")
+        print(f"    - Pair by condition: {args.pair_by_condition}")
+    if args.use_augmentation:
+        print(f"  Data augmentation: Enabled")
     model = create_contrastive_vae(
         latent_dim=args.latent_dim,
         projection_dim=args.projection_dim
@@ -466,7 +590,8 @@ def main():
         train_losses = train_epoch(
             model, train_loader, optimizer, device, epoch,
             args.beta, args.contrastive_weight, args.temperature,
-            args.use_augmentation, args.contrastive_loss_type
+            args.use_augmentation, args.contrastive_loss_type,
+            args.use_modality_pairs, args.pair_by_angle, args.pair_by_condition
         )
         history['train_total_loss'].append(train_losses[0])
         history['train_vae_loss'].append(train_losses[1])
@@ -477,7 +602,8 @@ def main():
         # Validate
         val_losses = validate(
             model, val_loader, device, args.beta, args.contrastive_weight,
-            args.temperature, args.contrastive_loss_type
+            args.temperature, args.contrastive_loss_type,
+            args.use_modality_pairs, args.pair_by_angle, args.pair_by_condition
         )
         history['val_total_loss'].append(val_losses[0])
         history['val_vae_loss'].append(val_losses[1])
