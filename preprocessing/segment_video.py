@@ -186,7 +186,9 @@ def process_video(
     output_height=None,
     display=False,
     yolo_update_interval=10,
-    sam_imgsz=512
+    sam_imgsz=512,
+    max_frames=50,
+    sample_rate=None
 ):
     """
     Process video and extract object silhouettes
@@ -228,9 +230,9 @@ def process_video(
     
     # Determine output dimensions
     if output_width is None and output_height is None:
-        # Keep original size
-        output_width, output_height = original_width, original_height
-        resize_output = False
+        # Force CASIA-B standard dimensions: 64×128 (width × height)
+        output_width, output_height = 64, 128
+        resize_output = True
     elif output_width is None:
         # Calculate width to maintain aspect ratio
         aspect_ratio = original_width / original_height
@@ -264,7 +266,18 @@ def process_video(
     
     # Process video frame by frame
     frame_count = 0
-    print("Starting tracking and saving silhouettes...")
+    saved_count = 0
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    
+    # Auto-calculate sample rate if not provided
+    if sample_rate is None:
+        if total_frames > max_frames:
+            sample_rate = max(1, total_frames // max_frames)
+        else:
+            sample_rate = 1
+    
+    print(f"Starting tracking and saving silhouettes...")
+    print(f"Total frames: {total_frames}, Sample rate: {sample_rate}, Target: {max_frames} frames")
     
     while True:
         ret, frame = cap.read()
@@ -272,7 +285,9 @@ def process_video(
             break
         
         frame_count += 1
-        
+        # Frame sampling: only process every Nth frame if we have too many
+        if sample_rate is not None and frame_count % sample_rate != 0: 
+            continue
         # Re-detect with YOLO periodically - match to closest detection
         if frame_count % yolo_update_interval == 0:
             yolo_result = yolo(frame, verbose=False)[0]
@@ -320,6 +335,12 @@ def process_video(
                 # Save silhouette
                 output_path = os.path.join(output_dir, f"frame_{frame_count:05d}.png")
                 cv2.imwrite(output_path, silhouette)
+                saved_count += 1
+                
+                # Stop if we've saved enough frames
+                if saved_count >= max_frames:
+                    print(f"Reached target of {max_frames} frames, stopping...")
+                    break
                 
                 # Update bounding box from mask for next frame
                 new_box = get_bbox_from_mask(mask)
@@ -381,7 +402,7 @@ def process_video(
                     cv2.destroyAllWindows()
                 return
     
-    print(f"Saved {frame_count} silhouettes to {output_dir}/")
+    print(f"Saved {saved_count}/{frame_count} silhouettes to {output_dir}/ (CASIA-B format: {output_width}×{output_height})")
 
 
 def main():
@@ -467,6 +488,20 @@ Examples:
         default=512,
         help="SAM processing image size (default: 512)"
     )
+
+    parser.add_argument(
+        "--max-frames",
+        type=int,
+        default=50,
+        help="Maximum number of frames to save (default: 50)"
+    )
+    
+    parser.add_argument(
+        "--sample-rate",
+        type=int,
+        default=None,
+        help="Sample every Nth frame (auto-calculated if not specified)"
+    )
     
     args = parser.parse_args()
     
@@ -501,7 +536,9 @@ Examples:
         output_height=args.height,
         display=args.display,
         yolo_update_interval=args.yolo_interval,
-        sam_imgsz=args.sam_imgsz
+        sam_imgsz=args.sam_imgsz,
+        max_frames=args.max_frames,
+        sample_rate=args.sample_rate
     )
 
 
