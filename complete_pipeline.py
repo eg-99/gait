@@ -46,6 +46,23 @@ from sklearn.neighbors import KNeighborsClassifier
 # Set device
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
+# Supported COCO classes for YOLO detection (extend as needed)
+SUPPORTED_OBJECT_CLASSES = {
+    'person': 0,
+    'dog': 16,
+}
+
+
+def get_object_id_from_name(object_name: str) -> Tuple[int, str]:
+    """Resolve a COCO object name to (class_id, normalized_name)."""
+    name = object_name.lower().strip()
+    if name not in SUPPORTED_OBJECT_CLASSES:
+        supported = ", ".join(sorted(SUPPORTED_OBJECT_CLASSES))
+        raise ValueError(
+            f"Unsupported object '{object_name}'. Supported classes: {supported}"
+        )
+    return SUPPORTED_OBJECT_CLASSES[name], name
+
 
 # =============================================================================
 # MODEL DEFINITIONS (copied from experiments_final to be self-contained)
@@ -232,7 +249,8 @@ def extract_silhouettes_from_video(
     output_height: int = 128,
     max_frames: int = 150,
     yolo_update_interval: int = 10,
-    sam_imgsz: int = 512
+    sam_imgsz: int = 512,
+    target_class: str = "person"
 ) -> List[str]:
     """
     Extract silhouettes from video using YOLO + SAM2.
@@ -246,6 +264,9 @@ def extract_silhouettes_from_video(
         raise ImportError("Please install ultralytics: pip install ultralytics")
     
     os.makedirs(output_dir, exist_ok=True)
+
+    target_class_id, target_class_name = get_object_id_from_name(target_class)
+    print(f"Tracking object class '{target_class_name}' (COCO id {target_class_id})")
     
     # Look for models in preprocessing/ folder first, download there if missing
     script_dir = Path(__file__).parent
@@ -291,14 +312,14 @@ def extract_silhouettes_from_video(
     yolo_result = yolo(first_frame, verbose=False)[0]
     obj_box = None
     for box in yolo_result.boxes:
-        if int(box.cls) == 0:  # person class
+        if int(box.cls) == target_class_id:
             x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
             obj_box = [int(x1), int(y1), int(x2), int(y2)]
             break
     
     if obj_box is None:
         cap.release()
-        raise ValueError("No person detected in first frame!")
+        raise ValueError(f"No {target_class_name} detected in first frame!")
     
     silhouette_paths = []
     frame_count = 0
@@ -324,7 +345,7 @@ def extract_silhouettes_from_video(
             yolo_result = yolo(frame, verbose=False)[0]
             detections = []
             for box in yolo_result.boxes:
-                if int(box.cls) == 0:
+                if int(box.cls) == target_class_id:
                     x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
                     detections.append([int(x1), int(y1), int(x2), int(y2)])
             if detections:
@@ -348,10 +369,41 @@ def extract_silhouettes_from_video(
                 # Create silhouette
                 silhouette = np.zeros((frame.shape[0], frame.shape[1]), dtype=np.uint8)
                 silhouette[mask > 0] = 255
-                
-                # Resize to CASIA-B format
-                silhouette = cv2.resize(silhouette, (output_width, output_height), 
-                                       interpolation=cv2.INTER_NEAREST)
+
+                # Crop tightly to the detected subject to avoid large empty borders
+                bbox = get_bbox_from_mask(mask, padding=5)
+                if bbox:
+                    x1, y1, x2, y2 = bbox
+                    x2 = max(x1 + 1, x2)
+                    y2 = max(y1 + 1, y2)
+                    silhouette = silhouette[y1:y2, x1:x2]
+
+                # Resize to CASIA-B format without stretching (letterbox)
+                sil_h, sil_w = silhouette.shape
+                if sil_h == 0 or sil_w == 0:
+                    continue
+
+                target_aspect = output_width / output_height
+                sil_aspect = sil_w / sil_h
+
+                if sil_aspect > target_aspect:
+                    new_w = output_width
+                    new_h = max(1, int(round(new_w / sil_aspect)))
+                else:
+                    new_h = output_height
+                    new_w = max(1, int(round(new_h * sil_aspect)))
+
+                resized = cv2.resize(
+                    silhouette,
+                    (new_w, new_h),
+                    interpolation=cv2.INTER_NEAREST
+                )
+
+                padded = np.zeros((output_height, output_width), dtype=np.uint8)
+                y_offset = (output_height - new_h) // 2
+                x_offset = (output_width - new_w) // 2
+                padded[y_offset:y_offset + new_h, x_offset:x_offset + new_w] = resized
+                silhouette = padded
                 
                 # Save
                 output_path = os.path.join(output_dir, f"frame_{saved_count:05d}.png")
@@ -366,7 +418,7 @@ def extract_silhouettes_from_video(
                     new_box[2] = min(frame.shape[1], new_box[2])
                     new_box[3] = min(frame.shape[0], new_box[3])
                     obj_box = new_box
-        
+        print(f"Saved {saved_count} silhouettes to {output_dir}")
         if saved_count >= max_frames:
             break
     
@@ -445,17 +497,40 @@ def compute_gei(silhouette_paths: List[str], normalize: bool = True) -> np.ndarr
     if not silhouette_paths:
         raise ValueError("No silhouette paths provided")
     
+    def _load_silhouette(path: str) -> Optional[np.ndarray]:
+        """Load a silhouette frame, forcing grayscale if needed."""
+        frame = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+        if frame is None:
+            return None
+        
+        if frame.ndim == 2:
+            return frame
+        if frame.ndim == 3:
+            channels = frame.shape[2]
+            if channels == 1:
+                return frame[:, :, 0]
+            if channels == 3:
+                return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            if channels == 4:
+                return cv2.cvtColor(frame, cv2.COLOR_BGRA2GRAY)
+        
+        raise ValueError(f"Unsupported silhouette shape: {frame.shape} from {path}")
+    
     # Read first frame to get dimensions
-    first_frame = cv2.imread(silhouette_paths[0], cv2.IMREAD_GRAYSCALE)
-    H, W = first_frame.shape
+    first_frame = _load_silhouette(silhouette_paths[0])
+    if first_frame is None:
+        raise ValueError(f"Unable to read silhouette: {silhouette_paths[0]}")
+    
+    H, W = first_frame.shape[:2]
     
     # Accumulator
     gei = np.zeros((H, W), dtype=np.float64)
     valid_frames = 0
     
     for frame_path in silhouette_paths:
-        frame = cv2.imread(frame_path, cv2.IMREAD_GRAYSCALE)
+        frame = _load_silhouette(frame_path)
         if frame is None:
+            print(f"Skipping unreadable silhouette: {frame_path}")
             continue
         
         binary = preprocess_silhouette(frame)
@@ -675,7 +750,8 @@ class GaitAbnormalityDetector:
         video_path: str,
         temp_dir: Optional[str] = None,
         frames_per_cycle: int = 30,
-        visualize: bool = False
+        visualize: bool = False,
+        target_class: str = "person"
     ) -> Dict:
         """
         Complete pipeline: video -> prediction.
@@ -685,6 +761,7 @@ class GaitAbnormalityDetector:
             temp_dir: Directory for temporary files (auto-cleaned if None)
             frames_per_cycle: Frames per gait cycle
             visualize: Whether to save visualization
+            target_class: Which COCO class to segment (e.g., 'person', 'dog')
         
         Returns:
             Dict with overall prediction and per-cycle results
@@ -709,7 +786,8 @@ class GaitAbnormalityDetector:
                 silhouette_dir,
                 output_width=64,
                 output_height=128,
-                max_frames=150
+                max_frames=150,
+                target_class=target_class
             )
             
             if len(silhouette_paths) < 10:
@@ -840,6 +918,9 @@ Available models:
                        help='Save visualization images')
     parser.add_argument('--json', action='store_true',
                        help='Output results as JSON')
+    parser.add_argument('--object-class', type=str, default='person',
+                        choices=sorted(SUPPORTED_OBJECT_CLASSES.keys()),
+                        help='COCO object class to segment (default: person)')
     
     args = parser.parse_args()
     
@@ -867,7 +948,8 @@ Available models:
             args.video,
             temp_dir=temp_dir if args.visualize else None,
             frames_per_cycle=args.frames_per_cycle,
-            visualize=args.visualize
+            visualize=args.visualize,
+            target_class=args.object_class
         )
         
         # Output results

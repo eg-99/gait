@@ -323,14 +323,41 @@ def process_video(
                 # Create white silhouette on black background
                 silhouette = np.zeros((frame.shape[0], frame.shape[1]), dtype=np.uint8)
                 silhouette[mask > 0] = 255
+
+                # Crop tightly to the silhouette (removes large empty background)
+                bbox = get_bbox_from_mask(mask, padding=5)
+                if bbox:
+                    x1, y1, x2, y2 = bbox
+                    x2 = max(x1 + 1, x2)
+                    y2 = max(y1 + 1, y2)
+                    silhouette = silhouette[y1:y2, x1:x2]
                 
-                # Resize silhouette if needed
+                # Resize silhouette if needed without stretching (letterbox to target size)
                 if resize_output:
-                    silhouette = cv2.resize(
+                    sil_h, sil_w = silhouette.shape
+                    if sil_h == 0 or sil_w == 0:
+                        continue
+                    target_aspect = output_width / output_height
+                    sil_aspect = sil_w / sil_h
+
+                    if sil_aspect > target_aspect:
+                        new_w = output_width
+                        new_h = max(1, int(round(new_w / sil_aspect)))
+                    else:
+                        new_h = output_height
+                        new_w = max(1, int(round(new_h * sil_aspect)))
+
+                    resized = cv2.resize(
                         silhouette,
-                        (output_width, output_height),
+                        (new_w, new_h),
                         interpolation=cv2.INTER_NEAREST
                     )
+
+                    padded = np.zeros((output_height, output_width), dtype=np.uint8)
+                    y_offset = (output_height - new_h) // 2
+                    x_offset = (output_width - new_w) // 2
+                    padded[y_offset:y_offset + new_h, x_offset:x_offset + new_w] = resized
+                    silhouette = padded
                 
                 # Save silhouette
                 output_path = os.path.join(output_dir, f"frame_{frame_count:05d}.png")
