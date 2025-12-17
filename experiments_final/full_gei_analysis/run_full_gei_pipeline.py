@@ -9,10 +9,13 @@ from PIL import Image
 import numpy as np
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
-from sklearn.metrics import accuracy_score, mean_squared_error
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.metrics import accuracy_score, mean_squared_error, f1_score
 import random
 from pathlib import Path
 import copy
+import torchvision.transforms as T
 
 # ==================================================================================================
 # 1. MODEL DEFINITIONS (Self-Contained)
@@ -163,6 +166,7 @@ class FullGEIDataset(Dataset):
         self.samples = []
         self.labels = []
         self.conditions = []
+        self.subjects = [] # Store subject IDs
         
         # Map conditions to integers
         # Assuming structure: root / Condition / Subject / ...
@@ -178,20 +182,25 @@ class FullGEIDataset(Dataset):
         print(f"Scanning for full.jpg in {root_dir}...")
         
         for img_path in self.root_dir:
-            # Extract condition from path
+            # Extract condition and subject from path
             # Example path: .../Pathology_dataset/Parkinson/s12/GEIs/.../full.jpg
-            # We need to robustly find the condition name
             parts = img_path.parts
             condition = None
-            for part in parts:
+            subject = None
+            
+            # Find condition and subject (assume subject is child of condition)
+            for i, part in enumerate(parts):
                 if part.lower() in self.class_map:
                     condition = part.lower()
+                    if i + 1 < len(parts):
+                        subject = parts[i+1] # s12, s18, etc.
                     break
             
             if condition:
                 self.samples.append(str(img_path))
                 self.labels.append(self.class_map[condition])
                 self.conditions.append(condition)
+                self.subjects.append(subject if subject else "unknown")
                 
         print(f"Found {len(self.samples)} 'full.jpg' GEIs across {len(set(self.labels))} classes.")
         
@@ -201,6 +210,7 @@ class FullGEIDataset(Dataset):
     def __getitem__(self, idx):
         img_path = self.samples[idx]
         label = self.labels[idx]
+        subject = self.subjects[idx]
         
         try:
             image = Image.open(img_path).convert('L') # Grayscale
@@ -210,10 +220,10 @@ class FullGEIDataset(Dataset):
             image = np.array(image).astype(np.float32) / 255.0
             image = torch.from_numpy(image).unsqueeze(0) # (1, 128, 64)
             
-            return image, label, img_path
+            return image, label, subject
         except Exception as e:
             print(f"Error loading {img_path}: {e}")
-            return torch.zeros((1, 128, 64)), label, img_path
+            return torch.zeros((1, 128, 64)), label, subject
 
 # ==================================================================================================
 # 3. TRAINING & EVALUATION UTILS
@@ -222,6 +232,10 @@ class FullGEIDataset(Dataset):
 def train_model(model, train_loader, epochs=50, lr=1e-4, contrastive=False):
     model.train()
     optimizer = optim.Adam(model.parameters(), lr=lr)
+    
+    # Augmentation for Contrastive Learning (View 2)
+    # We apply slight affine consistency (rotate, translate) to simulate different gait cycles
+    augmenter = T.RandomAffine(degrees=10, translate=(0.05, 0.05))
     
     for epoch in range(epochs):
         total_loss = 0
@@ -232,15 +246,16 @@ def train_model(model, train_loader, epochs=50, lr=1e-4, contrastive=False):
             optimizer.zero_grad()
             
             if contrastive:
-                # Contrastive requires two views. Simple augmentation: Image + Noisy Image or same image
-                # Here we simulate self-contrastive by passing the same image twice (weak augmentation)
-                # Ideally we would have real augmentations, but for "experiments_final" replication logic:
+                # View 1: Original Image
                 recon, mu, log_var, proj1 = model(images, return_projection=True)
-                _, _, _, proj2 = model(images, return_projection=True) # Usually different augment needed
+                
+                # View 2: Augmented Image (simulate different viewing condition/cycle)
+                images_aug = augmenter(images)
+                _, _, _, proj2 = model(images_aug, return_projection=True)
                 
                 v_loss, _, _ = vae_loss(recon, images, mu, log_var)
                 c_loss = contrastive_loss_fn(proj1, proj2)
-                loss = v_loss + 0.1 * c_loss # Weighting from original script
+                loss = v_loss + 0.1 * c_loss
             else:
                 recon, mu, log_var = model(images)
                 loss, _, _ = vae_loss(recon, images, mu, log_var)
@@ -249,57 +264,103 @@ def train_model(model, train_loader, epochs=50, lr=1e-4, contrastive=False):
             optimizer.step()
             total_loss += loss.item()
             
-        print(f"Epoch [{epoch+1}/{epochs}], Loss: {total_loss/len(train_loader):.4f}")
+        if (epoch+1) % 10 == 0:
+            print(f"Epoch [{epoch+1}/{epochs}], Loss: {total_loss/len(train_loader):.4f}")
     return model
 
-def evaluate_model(model, data_loader, run_name):
+def extract_features(model, loader):
     model.eval()
     embeddings = []
     labels = []
-    
-    # Reconstruction metrics
-    total_recon_loss = 0
-    total_samples = 0
+    subjects = []
+    recon_loss = 0
+    total = 0
     
     with torch.no_grad():
-        for images, lbls, _ in data_loader:
+        for images, lbls, subjs in loader:
             images = images.to(device)
             recon, mu, log_var = model(images) if not isinstance(model, ContrastiveVAE) else model(images, return_projection=False)[:3]
             
-            # Reconstruction MSE
             mse = nn.functional.mse_loss(recon, images, reduction='sum').item()
-            total_recon_loss += mse
-            total_samples += images.size(0)
+            recon_loss += mse
+            total += images.size(0)
             
-            # Store embeddings (mu)
             embeddings.append(mu.cpu().numpy())
             labels.append(lbls.numpy())
+            subjects.extend(list(subjs))
             
-    embeddings = np.concatenate(embeddings)
-    labels = np.concatenate(labels)
+    return np.concatenate(embeddings), np.concatenate(labels), np.array(subjects), recon_loss / total
+
+def evaluate_model(model, train_loader, test_loader, run_name):
+    # Extract Train Features (for fitting classifiers)
+    X_train, y_train, s_train, _ = extract_features(model, train_loader)
     
-    avg_mse = total_recon_loss / total_samples
+    # Extract Test Features (for evaluation)
+    X_test, y_test, s_test, test_mse = extract_features(model, test_loader)
     
-    # Classification (KNN)
-    # Split embeddings for simple eval (80/20 split on extracted features)
-    # Note: Proper ML would split subjects, but for quick embedding quality check:
-    indices = np.arange(len(embeddings))
-    np.random.shuffle(indices)
-    split = int(0.8 * len(embeddings))
-    train_idx, test_idx = indices[:split], indices[split:]
-    
-    X_train, X_test = embeddings[train_idx], embeddings[test_idx]
-    y_train, y_test = labels[train_idx], labels[test_idx]
-    
+    # 1. Multi-Class KNN
     knn = KNeighborsClassifier(n_neighbors=5)
     knn.fit(X_train, y_train)
-    acc = accuracy_score(y_test, knn.predict(X_test))
+    y_pred_knn = knn.predict(X_test)
+    knn_acc = accuracy_score(y_test, y_pred_knn)
+    knn_f1 = f1_score(y_test, y_pred_knn, average='macro')
     
+    # 2. Multi-Class SVM
+    svm = SVC(kernel='rbf')
+    svm.fit(X_train, y_train)
+    y_pred_svm = svm.predict(X_test)
+    svm_acc = accuracy_score(y_test, y_pred_svm)
+    svm_f1 = f1_score(y_test, y_pred_svm, average='macro')
+    
+    # 3. Binary Anomaly Detection
+    y_bin_train = (y_train != 0).astype(int)
+    y_bin_test = (y_test != 0).astype(int)
+    
+    bin_clf = LogisticRegression(max_iter=1000, class_weight='balanced')
+    bin_clf.fit(X_train, y_bin_train)
+    y_bin_pred = bin_clf.predict(X_test)
+    bin_acc = accuracy_score(y_bin_test, y_bin_pred)
+    bin_f1 = f1_score(y_bin_test, y_bin_pred, average='binary')
+    
+    # 4. Subject Identification
+    # Filter for subjects present in both train and test (otherwise can't predict)
+    common_subjects = set(s_train).intersection(set(s_test))
+    if len(common_subjects) > 1:
+        # Create masks
+        train_mask = np.isin(s_train, list(common_subjects))
+        test_mask = np.isin(s_test, list(common_subjects))
+        
+        X_subj_train = X_train[train_mask]
+        y_subj_train = LabelEncoder().fit_transform(s_train[train_mask])
+        
+        X_subj_test = X_test[test_mask]
+        # Re-encode test to ensure matching labels (careful here)
+        le = LabelEncoder()
+        le.fit(s_train[train_mask]) # Fit on train subjects
+        # Only keep test samples that are known subjects
+        known_test_mask = np.isin(s_test[test_mask], le.classes_)
+        if known_test_mask.sum() > 0:
+            X_subj_test_final = X_subj_test[known_test_mask]
+            y_subj_test_final = le.transform(s_test[test_mask][known_test_mask])
+            
+            clf_subj = LogisticRegression(max_iter=2000, multi_class='multinomial')
+            clf_subj.fit(X_subj_train, y_subj_train)
+            subj_acc = accuracy_score(y_subj_test_final, clf_subj.predict(X_subj_test_final))
+        else:
+            subj_acc = 0.0
+    else:
+        subj_acc = 0.0
+
     print(f"--- {run_name} Results ---")
-    print(f"Reconstruction MSE: {avg_mse:.4f}")
-    print(f"KNN Accuracy: {acc*100:.2f}%")
+    print(f"MSE: {test_mse:.2f} | KNN: {knn_acc:.2f} | SVM: {svm_acc:.2f} | Binary: {bin_acc:.2f} | Subj: {subj_acc:.2f}")
     
-    return avg_mse, acc
+    return {
+        'MSE': test_mse,
+        'KNN_Acc': knn_acc, 'KNN_F1': knn_f1,
+        'SVM_Acc': svm_acc, 'SVM_F1': svm_f1,
+        'Binary_Acc': bin_acc, 'Binary_F1': bin_f1,
+        'Subj_Acc': subj_acc
+    }
 
 # ==================================================================================================
 # 4. MAIN PIPELINE
@@ -308,121 +369,184 @@ def evaluate_model(model, data_loader, run_name):
 if __name__ == "__main__":
     
     # CONFIG
-    # Look for Pathology_dataset relative to this script
-    # Script is in experiments_final/. Dataset is likely ONE LEVEL UP from experiments_final in project root
-    # Adjust path if needed
     SCRIPT_DIR = Path(__file__).parent
-    # Script is in experiments_final/full_gei_analysis/
-    # Dataset is in Pathology_dataset (root) -> up 3 levels
     DATA_ROOT = SCRIPT_DIR.parent.parent / "Pathology_dataset"
     CHECKPOINT_DIR = SCRIPT_DIR.parent.parent / "experiments_final" / "checkpoints"
     
-    device = torch.device('cpu') # Use CPU for mac unless mps is verified
+    device = torch.device('cpu') 
     BATCH_SIZE = 16
-    EPOCHS = 30 # Reduced for speed in this demo, original was ~100
+    EPOCHS = 30
     
-    print(f"Running Full-GEI Pipeline.")
+    print(f"Running Full-GEI Pipeline (Rigorous Split 80/20).")
     print(f"Data Root: {DATA_ROOT}")
     
     # 1. LOAD DATA
     dataset = FullGEIDataset(DATA_ROOT)
     if len(dataset) == 0:
-        print("CRITICAL ERROR: No 'full.jpg' images found. Check path.")
+        print("CRITICAL ERROR: No 'full.jpg' images found.")
         exit(1)
+    
+# ... (Previous code remains)
+
+def create_subject_aware_split(dataset, test_ratio=0.2, seed=42):
+    """
+    Splits the dataset into train and test sets ensuring no subject overlap.
+    Stratified by Class (Condition).
+    """
+    # Group samples by (Condition, Subject)
+    # Structure: condition_map = { 'normal': ['s1', 's2'], 'diplegic': ['s5', 's6'] }
+    condition_to_subjects = {}
+    
+    # We need to iterate the dataset to map subjects
+    # Accessing internal lists directly for speed (dataset.samples, dataset.subjects, dataset.labels)
+    # dataset.subjects is a list aligned with dataset.samples
+    
+    unique_class_labels = set(dataset.labels)
+    
+    # Map label -> set of subjects
+    label_to_subjects = {}
+    for idx, label in enumerate(dataset.labels):
+        subj = dataset.subjects[idx]
+        if label not in label_to_subjects:
+            label_to_subjects[label] = set()
+        label_to_subjects[label].add(subj)
         
-    loader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=True)
+    train_indices = []
+    test_indices = []
+    
+    rng = random.Random(seed)
+    
+    print(f"\n--- Subject-Aware Splitting (Test Ratio={test_ratio}) ---")
+    
+    for label, subjects in label_to_subjects.items():
+        subjects = list(subjects)
+        subjects.sort() # Ensure deterministic order before shuffle
+        rng.shuffle(subjects)
+        
+        n_test = max(1, int(len(subjects) * test_ratio)) # Ensure at least 1 test subject per class if possible
+        n_train = len(subjects) - n_test
+        
+        train_subjs = set(subjects[n_test:])
+        test_subjs = set(subjects[:n_test])
+        
+        # Verify strict separation
+        assert train_subjs.isdisjoint(test_subjs)
+        
+        # Find indices for these subjects
+        # This is O(N*C), acceptable for N=400
+        for idx, (s, l) in enumerate(zip(dataset.subjects, dataset.labels)):
+            if l == label:
+                if s in train_subjs:
+                    train_indices.append(idx)
+                elif s in test_subjs:
+                    test_indices.append(idx)
+        
+        condition_name = [k for k, v in dataset.class_map.items() if v == label][0]
+        print(f"Class '{condition_name}': {len(train_subjs)} Train Subjs, {len(test_subjs)} Test Subjs")
+
+    print(f"Total: {len(train_indices)} Train Images, {len(test_indices)} Test Images")
+    
+    # Create Subset objects
+    train_subset = torch.utils.data.Subset(dataset, train_indices)
+    test_subset = torch.utils.data.Subset(dataset, test_indices)
+    
+    return train_subset, test_subset
+
+if __name__ == "__main__":
+    
+    # CONFIG
+    # GLOBAL SEEDING for Perfection/Consistency
+    SEED = 42
+    random.seed(SEED)
+    np.random.seed(SEED)
+    torch.manual_seed(SEED)
+    
+    SCRIPT_DIR = Path(__file__).parent
+    DATA_ROOT = SCRIPT_DIR.parent.parent / "Pathology_dataset"
+    CHECKPOINT_DIR = SCRIPT_DIR.parent.parent / "experiments_final" / "checkpoints"
+    
+    device = torch.device('cpu') 
+    BATCH_SIZE = 16
+    EPOCHS = 30
+    
+    print(f"Running Full-GEI Pipeline (Perfect: Subject-Aware + Augmentation + Fixed Seed).")
+    print(f"Data Root: {DATA_ROOT}")
+    
+    # 1. LOAD DATA
+    dataset = FullGEIDataset(DATA_ROOT)
+    if len(dataset) == 0:
+        print("CRITICAL ERROR: No 'full.jpg' images found.")
+        exit(1)
+    
+    # 2. Strict SUBJECT-AWARE Split
+    # This prevents "Subject Leakage" (learning the person instead of the disease)
+    train_set, test_set = create_subject_aware_split(dataset, test_ratio=0.2, seed=SEED)
+    
+    # Fixed generator for dataloaders
+    g = torch.Generator()
+    g.manual_seed(SEED)
+    
+    train_loader = DataLoader(train_set, batch_size=BATCH_SIZE, shuffle=True, generator=g)
+    test_loader = DataLoader(test_set, batch_size=BATCH_SIZE, shuffle=False, generator=g)
     
     results = {}
     
-    # ============================================================
-    # RUN 1: EXP3 (FROM SCRATCH)
-    # ============================================================
-    print("\n\n=== RUN 1: EXP3 (Train from Scratch on Full GEIs) ===")
-    
-    # VAE Scratch
+    # EXP 3
+    print("\n\n=== RUN 1: EXP3 (Train from Scratch) ===")
     vae_scratch = GEI_VAE().to(device)
-    print("Training VAE (Scratch)...")
-    vae_scratch = train_model(vae_scratch, loader, epochs=EPOCHS, contrastive=False)
-    mse, acc = evaluate_model(vae_scratch, loader, "EXP3 VAE")
-    results['EXP3_VAE'] = {'MSE': mse, 'ACC': acc}
+    vae_scratch = train_model(vae_scratch, train_loader, epochs=EPOCHS, contrastive=False)
+    results['EXP3 VAE'] = evaluate_model(vae_scratch, train_loader, test_loader, "EXP3 VAE")
     
-    # Contrastive Scratch
     cvae_scratch = ContrastiveVAE().to(device)
-    print("Training Contrastive VAE (Scratch)...")
-    cvae_scratch = train_model(cvae_scratch, loader, epochs=EPOCHS, contrastive=True)
-    mse, acc = evaluate_model(cvae_scratch, loader, "EXP3 Contrastive")
-    results['EXP3_Contrastive'] = {'MSE': mse, 'ACC': acc}
+    cvae_scratch = train_model(cvae_scratch, train_loader, epochs=EPOCHS, contrastive=True)
+    results['EXP3 Contrastive'] = evaluate_model(cvae_scratch, train_loader, test_loader, "EXP3 Contrastive")
 
-
-    # ============================================================
-    # RUN 2: EXP2 (FINETUNE)
-    # ============================================================
-    print("\n\n=== RUN 2: EXP2 (Finetune from CASIA on Full GEIs) ===")
-    
+    # EXP 2
+    print("\n\n=== RUN 2: EXP2 (Finetune) ===")
     if (CHECKPOINT_DIR / "exp1_vae_casia.pth").exists():
-        # VAE Finetune
         vae_ft = GEI_VAE().to(device)
         ckpt = torch.load(CHECKPOINT_DIR / "exp1_vae_casia.pth", map_location=device)
-        # Handle dictionary wrap if present
-        if 'model_state_dict' in ckpt:
-            ckpt = ckpt['model_state_dict']
+        if 'model_state_dict' in ckpt: ckpt = ckpt['model_state_dict']
         vae_ft.load_state_dict(ckpt)
-        print("Loaded CASIA VAE weights. Finetuning...")
-        vae_ft = train_model(vae_ft, loader, epochs=EPOCHS, lr=1e-5, contrastive=False) # Lower LR for finetune
-        mse, acc = evaluate_model(vae_ft, loader, "EXP2 VAE (Finetune)")
-        results['EXP2_VAE'] = {'MSE': mse, 'ACC': acc}
+        vae_ft = train_model(vae_ft, train_loader, epochs=EPOCHS, lr=1e-5, contrastive=False)
+        results['EXP2 VAE'] = evaluate_model(vae_ft, train_loader, test_loader, "EXP2 VAE")
     else:
-        print("Skipping EXP2 VAE (No checkpoint found)")
-        
+        print("Skipping EXP2 VAE (No checkpoint)")
+    
     if (CHECKPOINT_DIR / "exp1_contrastive_casia.pth").exists():
-        # Contrastive Finetune
         cvae_ft = ContrastiveVAE().to(device)
         ckpt = torch.load(CHECKPOINT_DIR / "exp1_contrastive_casia.pth", map_location=device)
-        if 'model_state_dict' in ckpt:
-            ckpt = ckpt['model_state_dict']
-        # Note: CASIA Contrastive weights might have key mismatch if projection head changed. Strict=False helps.
+        if 'model_state_dict' in ckpt: ckpt = ckpt['model_state_dict']
         cvae_ft.load_state_dict(ckpt, strict=False)
-        print("Loaded CASIA Contrastive weights. Finetuning...")
-        cvae_ft = train_model(cvae_ft, loader, epochs=EPOCHS, lr=1e-5, contrastive=True)
-        mse, acc = evaluate_model(cvae_ft, loader, "EXP2 Contrastive (Finetune)")
-        results['EXP2_Contrastive'] = {'MSE': mse, 'ACC': acc}
+        cvae_ft = train_model(cvae_ft, train_loader, epochs=EPOCHS, lr=1e-5, contrastive=True)
+        results['EXP2 Contrastive'] = evaluate_model(cvae_ft, train_loader, test_loader, "EXP2 Contrastive")
     else:
-        print("Skipping EXP2 Contrastive (No checkpoint found)")
+        print("Skipping EXP2 Contrastive (No checkpoint)")
 
-
-    # ============================================================
-    # RUN 3: EXP1 (ZERO-SHOT EVALUATION)
-    # ============================================================
-    print("\n\n=== RUN 3: EXP1 (Zero-Shot CASIA on Full GEIs) ===")
-    
+    # EXP 1
+    print("\n\n=== RUN 3: EXP1 (Zero-Shot) ===")
     if (CHECKPOINT_DIR / "exp1_vae_casia.pth").exists():
         vae_zs = GEI_VAE().to(device)
         ckpt = torch.load(CHECKPOINT_DIR / "exp1_vae_casia.pth", map_location=device)
-        if 'model_state_dict' in ckpt:
-            ckpt = ckpt['model_state_dict']
+        if 'model_state_dict' in ckpt: ckpt = ckpt['model_state_dict']
         vae_zs.load_state_dict(ckpt)
-        print("Evaluating CASIA VAE (Zero-Shot)...")
-        mse, acc = evaluate_model(vae_zs, loader, "EXP1 VAE (Zero-Shot)")
-        results['EXP1_VAE'] = {'MSE': mse, 'ACC': acc}
+        results['EXP1 VAE'] = evaluate_model(vae_zs, train_loader, test_loader, "EXP1 VAE")
     
     if (CHECKPOINT_DIR / "exp1_contrastive_casia.pth").exists():
         cvae_zs = ContrastiveVAE().to(device)
         ckpt = torch.load(CHECKPOINT_DIR / "exp1_contrastive_casia.pth", map_location=device)
-        if 'model_state_dict' in ckpt:
-            ckpt = ckpt['model_state_dict']
+        if 'model_state_dict' in ckpt: ckpt = ckpt['model_state_dict']
         cvae_zs.load_state_dict(ckpt, strict=False)
-        print("Evaluating CASIA Contrastive (Zero-Shot)...")
-        mse, acc = evaluate_model(cvae_zs, loader, "EXP1 Contrastive (Zero-Shot)")
-        results['EXP1_Contrastive'] = {'MSE': mse, 'ACC': acc}
+        results['EXP1 Contrastive'] = evaluate_model(cvae_zs, train_loader, test_loader, "EXP1 Contrastive")
 
-
-    # ============================================================
-    # SUMMARY
-    # ============================================================
-    print("\n\n" + "="*50)
-    print("FINAL RESULTS TABLE (Data: ONLY *full.jpg)")
-    print("="*50)
-    print(f"{'Experiment':<30} | {'MSE':<10} | {'Accuracy':<10}")
-    print("-" * 56)
-    for name, metrics in results.items():
-        print(f"{name:<30} | {metrics['MSE']:.4f}     | {metrics['ACC']*100:.2f}%")
+    print("\n\n" + "="*145)
+    print("COMPREHENSIVE SUMMARY TABLE (Subject-Aware Split)")
+    print("="*145)
+    print(f"{'Experiment':<20} | {'MSE':<8} | {'KNN Acc':<8} {'KNN F1':<8} | {'SVM Acc':<8} {'SVM F1':<8} | {'Bin Acc':<8} {'Bin F1':<8} | {'Subj Acc':<8}")
+    print("-" * 145)
+    for name, m in results.items():
+        print(f"{name:<20} | {m['MSE']:<8.2f} | {m['KNN_Acc']:<8.3f} {m['KNN_F1']:<8.3f} | {m['SVM_Acc']:<8.3f} {m['SVM_F1']:<8.3f} | {m['Binary_Acc']:<8.3f} {m['Binary_F1']:<8.3f} | {m['Subj_Acc']:<8.3f}")
+    print("-" * 145)
+    
+    for name, m in results.items():
+        print(f"{name:<20} | {m['MSE']:<8.2f} | {m['KNN_Acc']:<8.3f} {m['KNN_F1']:<8.3f} | {m['SVM_Acc']:<8.3f} {m['SVM_F1']:<8.3f} | {m['Binary_Acc']:<8.3f} {m['Binary_F1']:<8.3f} | {m['Subj_Acc']:<8.3f}")

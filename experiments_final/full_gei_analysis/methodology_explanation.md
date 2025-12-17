@@ -1,40 +1,68 @@
-# Methodology: Full-GEI Analysis
+# Methodology: End-to-End Gait Analysis Pipeline
 
-This document explains the exact methodology used for the "Full GEI" experiments, addressing the discrepancy between training on "All GEIs" (partials) and analyzing "Full GEIs."
+This document details the complete pipeline for the Pathological Gait Analysis system, spanning from raw video ingestion to final model inference.
 
-## 1. Data Selection
-*   **Source:** We used the data located in `Pathology_dataset/`.
-*   **Filtering:** The script enforced a strict filter to load **ONLY** images ending in `*full.jpg`.
-*   **Impact:** This reduced the dataset size to approximately 400 clean, complete gait cycle silhouettes, discarding thousands of partial/noisy fragments used in the original `experiments_final` training.
+## 1. Preprocessing: From Video to GEI
+The raw input consists of video recordings of patients with various gait pathologies. We process these into **Gait Energy Images (GEIs)**, which summarize spatiotemporal gait information into a single image.
 
-## 2. Model Architecture
-*   **VAE (Variational Autoencoder):**
-    *   Encoder: 4 Convolutional layers + **BatchNorm** + ReLU.
-    *   Latent Space: 128 dimensions.
-    *   Decoder: 4 Transposed Convolutional layers + **BatchNorm** + ReLU.
-*   **Contrastive VAE:**
-    *   Uses the VAE Encoder as a backbone.
-    *   Adds a projection head (Linear -> ReLU -> Dropout -> Linear) for contrastive loss optimization.
+### 1.1. Pipeline Steps
+1.  **Frame Extraction:** Raw videos are decomposed into individual frames.
+2.  **Human Detection (YOLOv8):** Each frame is passed through a YOLOv8 detector to locate the person. Bounding boxes are generated.
+3.  **Silhouette Segmentation (SAM 2):** The breakdown of the human figure is refined using the **Segment Anything Model 2 (SAM 2)**. This state-of-the-art model generates precise binary silhouettes, removing background noise.
+4.  **Centering & Alignment:** Silhouettes are centered based on their center of mass to align the subject across frames.
+5.  **Gait Cycle Detection (Optical Flow):** We compute the optical flow between consecutive silhouettes. A full "Gait Cycle" is identified by analyzing the periodicity of leg movement.
+6.  **GEI Generation:** All binary silhouettes within a single complete gait cycle are averaged together to produce the **Gait Energy Image (GEI)**.
+    *   **Result:** A grayscale image where pixel intensity represents the amount of time that spatial location was occupied by the body during the walk. Higher intensity = more static body parts (torso); Lower intensity = dynamic parts (legs/arms).
 
-> **Crucial Detail:** We ensured the model architecture exactly matched the saved checkpoints (specifically the inclusion of `BatchNorm2d` layers) to allow for valid transfer learning and evaluation.
+### 1.2. Data Filtering
+For this final analysis, we apply a strict quality filter:
+*   **Selection:** We utilize **only** `*full.jpg` images. These represent complete, valid gait cycles verified by the preprocessing pipeline. Partial or incomplete cycles are excluded to ensure feature consistency.
 
-## 3. Experimental Setup
+---
 
-### Run 1: Experiment 3 (From Scratch)
-*   **Initialization:** Random weights.
-*   **Training:** Trained for 30 epochs on the `*full.jpg` dataset.
-*   **Goal:** Establish a baseline for performance when learning *only* from the target domain without prior knowledge.
+## 2. Experimental Protocol
 
-### Run 2: Experiment 2 (Fine-Tuning)
-*   **Initialization:** Loaded pre-trained weights from `experiments_final/checkpoints/exp1_*_casia.pth`.
-*   **Training:** Fine-tuned for 30 epochs on the `*full.jpg` dataset with a lower learning rate (`1e-5`).
-*   **Goal:** Assess if starting from a "healthy gait" model helps when data is limited to only full cycles.
+### 2.1. Dataset Preparation
+*   **Total Samples:** ~400 verified `*full.jpg` GEIs.
+*   **Standardization:** Images are resized to **64x128** pixels, converted to grayscale, and normalized to range `[0, 1]`.
 
-### Run 3: Experiment 1 (Zero-Shot)
-*   **Initialization:** Loaded pre-trained weights from `experiments_final/checkpoints/exp1_*_casia.pth`.
-*   **Training:** **None.** The model was switched to evaluation mode immediately.
-*   **Goal:** Evaluate how well the "healthy" model features cluster pathological data without any adaptation.
+### 2.2. Subject-Aware Splitting (Zero Leakage)
+To assess true generalization, we employ a **Subject-Aware Split**:
+*   **Method:** Subjects are grouped by pathology. For each pathology, **20% of unique subjects** are randomly selected and completely held out for the Test Set.
+*   **Separation:** The Training Set and Test Set share **zero subjects**. This prevents the model from "memorizing" a person's identity and forces it to learn disease features.
+*   **Reproducibility:** A global random seed (`SEED=42`) is enforced across Python, NumPy, and PyTorch.
 
-## 4. Evaluation Metrics
-*   **Reconstruction MSE:** Mean Squared Error between the input GEI and the VAE's reconstruction. Measures how well the model "understands" the shape.
-*   **Classification Accuracy:** We extracted embeddings (latent mean $\mu$) for all images, trained a KNN classifier (k=5) on 80% of them, and tested on the remaining 20%. This measures how well the latent space separates the different pathology conditions.
+### 2.3. Data Augmentation (Contrastive Learning)
+To train the Contrastive model effectively on this dataset we create two distinct "views" of every image during training:
+1.  **View 1:** The original GEI.
+2.  **View 2:** An augmented GEI with **RandomAffine** transformations (Rotation ±10°, Translation ±5%).
+This forces the model to learn features that are invariant to small changes in viewing angle or cycle alignment.
+
+---
+
+## 3. Model Architectures
+
+### 3.1. GEI_VAE (Variational Autoencoder)
+A generative model designed to learn a compressed latent representation of gait.
+*   **Encoder:** 4-layer Convolutional Neural Network (CNN) with `BatchNorm` and `ReLU`. Compresses input (128x64) -> Latent Vector (128d).
+*   **Latent Space:** Parameters `mu` (mean) and `log_var` (variance) are learned.
+*   **Decoder:** Transpose Convolutional network that reconstructs the GEI from the latent vector.
+*   **Loss:** `MSE` (Reconstruction Quality) + `KL Divergence` (Regularization).
+
+### 3.2. ContrastiveVAE
+Enhances the VAE by enforcing that embeddings of the *same* image (original and augmented view) are closer together than embeddings of *different* images.
+*   **Backbone:** Uses the same GEI_VAE encoder.
+*   **Projection Head:** A multi-layer perceptron (Linear -> ReLU -> Dropout -> Linear) that projects latent vectors into a space optimized for contrastive loss.
+*   **Loss:** `VAE Loss` + `NT-Xent Loss` (Normalized Temperature-scaled Cross Entropy).
+
+---
+
+## 4. Experiments
+
+We evaluate three distinct training strategies to determine the optimal approach for Pathological Gait Analysis.
+
+| Experiment | Name | Methodology | Goal |
+| :--- | :--- | :--- | :--- |
+| **EXP 1** | **Zero-Shot Transfer** | **No Training.** We use a VAE pre-trained on the massive **CASIA-B** dataset (healthy walking). We extract features for Pathology images directly. | Test feature reusability from healthy to pathological domains. |
+| **EXP 2** | **Fine-Tuning** | **Transfer Learning.** We optimize the CASIA-B pre-trained weights using the Pathology Training Set (low learning rate). | Adapt generic gait features to specific pathologies. |
+| **EXP 3** | **From Scratch** | **Domain Training.** We initialize the model randomly and train *only* on the Pathology Training Set (30 epochs). | Learn dataset-specific features without bias from healthy datasets. |
