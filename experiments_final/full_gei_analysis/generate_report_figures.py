@@ -77,7 +77,7 @@ def main():
     torch.manual_seed(SEED)
     
     SCRIPT_DIR = Path(__file__).parent
-    DATA_ROOT = SCRIPT_DIR.parent.parent / "Pathology_dataset"
+    DATA_ROOT = SCRIPT_DIR.parent.parent / "pathology_data_organized"
     OUTPUT_DIR = SCRIPT_DIR / "figures"
     OUTPUT_DIR.mkdir(exist_ok=True)
     

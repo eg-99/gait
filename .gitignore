@@ -14,6 +14,13 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+*.jpg
+*.png
+*.npz
+*.mp4
+*.zip
+key_frames.json
+*.001
 
 # Jupyter Notebook
 .ipynb_checkpoints

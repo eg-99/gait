@@ -370,7 +370,7 @@ if __name__ == "__main__":
     
     # CONFIG
     SCRIPT_DIR = Path(__file__).parent
-    DATA_ROOT = SCRIPT_DIR.parent.parent / "Pathology_dataset"
+    DATA_ROOT = SCRIPT_DIR.parent.parent / "pathology_data_organized"
     CHECKPOINT_DIR = SCRIPT_DIR.parent.parent / "experiments_final" / "checkpoints"
     
     device = torch.device('cpu') 
@@ -462,7 +462,7 @@ if __name__ == "__main__":
     torch.manual_seed(SEED)
     
     SCRIPT_DIR = Path(__file__).parent
-    DATA_ROOT = SCRIPT_DIR.parent.parent / "Pathology_dataset"
+    DATA_ROOT = SCRIPT_DIR.parent.parent / "pathology_data_organized"
     CHECKPOINT_DIR = SCRIPT_DIR.parent.parent / "experiments_final" / "checkpoints"
     
     device = torch.device('cpu') 
