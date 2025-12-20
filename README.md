@@ -1,6 +1,7 @@
 # Computer vision tools for video segmentation and gait recognition.
 
 Embedding analysis is in `gait/analysis/`
+
 In depth classification is in `gait/experiments_final/full_gei_analysis/`
 
 ## Features
